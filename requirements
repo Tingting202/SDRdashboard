@@ -1,7 +1,7 @@
-streamlit==1.27.2
-matplotlib==3.7.1
-geopandas==0.14.0
-pandas==2.1.1
-altair==5.1.2
-numpy==1.24.2
-scipy==1.9.1
+streamlit
+matplotlib
+geopandas
+pandas
+altair
+numpy
+scipy
