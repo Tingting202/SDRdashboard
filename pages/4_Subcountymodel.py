@@ -266,83 +266,117 @@ for i in range(t):
     n_MM[i, :, 0] = n_MM1_H + n_MM1_L
     n_MM[i, :, 1] = n_MM2_H + n_MM2_L
 
-###Plot #Death by subcounty
-num_rows, num_cols = 1, 2
-
-# Create a grid of subplots
-fig, axes = plt.subplots(num_rows, num_cols, figsize=(12, 4))
-
-# Iterate over j from 0 to 1 (two subplots)
-for j in range(2):
-    # Replace 0 with j to access different data
-    MM = n_MM[:, :, j].T
-
-    # Plot the data in the current subplot
-    for i in range(4):
-        axes[j].plot(range(12), MM[i, :])
-    axes[j].set_title(f'Pushback {j}')
-    axes[j].set_xlabel('Months')
-    axes[j].set_ylabel('Deaths')
-
-# Adjust layout
-plt.tight_layout()
-
-# Show the plots
-#plt.show()
-st.pyplot(fig)
-
-###Plot births by subcounty
-
-num_rows, num_cols = 4, 3
-
-# Create a grid of subplots
-fig, axes = plt.subplots(num_rows, num_cols, figsize=(12, 8))
-
-# Iterate over j from 0 to 11
-for j in range(num_rows * num_cols):
-# Replace 7 with j to access different LB1s
-    y_values = SC['LB1s'][j]
-    y_values = y_values.T
-
-    # Calculate the row and column indices for the current subplot
-    row, col = divmod(j, num_cols)
-
-    # Plot the data in the current subplot
-    for i in range(4):
-        axes[row, col].plot(range(12), y_values[i])
-
-    axes[row, col].set_title(f'Subcounty {j + 1}')
-    axes[row, col].set_xlabel('Months')
-    axes[row, col].set_ylabel('# of Births')
-
-# Adjust layout
-plt.tight_layout()
-
-# Show the plots
-    #plt.show()
-st.pyplot(fig)
-
-
-
 ##Transfer n_MM into dataframes
-# dfs = []
+dfs = []
+for j in range(2):
+    facility_levels = [f'{i}' for i in range(n_MM[:, :, j].T.shape[0])]
+    months = [i + 1 for i in range(n_MM[:, :, j].T.shape[1])]
+
+    data = {
+        "level": [level for level in facility_levels for _ in range(n_MM[:, :, j].T.shape[1])],
+        "month": [month for _ in range(n_MM[:, :, j].T.shape[0]) for month in months],
+        "value": n_MM[:, :, j].T.flatten()  # You can name this column as needed
+    }
+
+    data["pushback"] = j
+    df = pd.DataFrame(data)
+    dfs.append(df)
+
+dfs = pd.concat(dfs, ignore_index=True)
+dfs['level'] = dfs['level'].astype('category')
+
+###Plot #Death by subcounty
+# Filter the DataFrame to create subsets for pushback = 0 and pushback = 1
+df_pushback_0 = dfs[dfs['pushback'] == 0]
+df_pushback_1 = dfs[dfs['pushback'] == 1]
+
+col1, col2 = st.columns(2)
+with col1:
+    chart_pushback_0 = (
+        alt.Chart(
+            data=df_pushback_0,
+            title="Pushback 0",
+        )
+        .mark_line()
+        .encode(
+            x=alt.X("month", axis=alt.Axis(title="Month")),
+            y=alt.Y("value", axis=alt.Axis(title="Deaths")).scale(domain=(0, 400)),
+            color=alt.Color("level:N").title("Level")
+        )
+    )
+
+    st.altair_chart(chart_pushback_0)
+
+with col2:
+    chart_pushback_1 = (
+        alt.Chart(
+            data=df_pushback_1,
+            title="Pushback 1",
+        )
+        .mark_line()
+        .encode(
+            x=alt.X("month", axis=alt.Axis(title="Month")),
+            y=alt.Y("value", axis=alt.Axis(title="Deaths")).scale(domain=(0, 400)),
+            color=alt.Color("level:N").title("Level")
+        )
+    )
+
+    st.altair_chart(chart_pushback_1)
+
+# ##Plot #Death by subcounty
+# num_rows, num_cols = 1, 2
+#
+# # Create a grid of subplots
+# fig, axes = plt.subplots(num_rows, num_cols, figsize=(12, 4))
+#
+# # Iterate over j from 0 to 1 (two subplots)
 # for j in range(2):
-#     facility_levels = [f"{i}" for i in range(n_MM[:, :, j].T.shape[0])]
-#     months = [f"{i + 1}" for i in range(n_MM[:, :, j].T.shape[1])]
+#     # Replace 0 with j to access different data
+#     MM = n_MM[:, :, j].T
 #
-#     data = {
-#         "facility.level": [level for level in facility_levels for _ in range(n_MM[:, :, j].T.shape[1])],
-#         "month": [month for _ in range(n_MM[:, :, j].T.shape[0]) for month in months],
-#         "value": n_MM[:, :, j].T.flatten()  # You can name this column as needed
-#     }
+#     # Plot the data in the current subplot
+#     for i in range(4):
+#         axes[j].plot(range(12), MM[i, :])
+#     axes[j].set_title(f'Pushback {j}')
+#     axes[j].set_xlabel('Months')
+#     axes[j].set_ylabel('Deaths')
 #
-#     data["pushback"] = j
-#     df = pd.DataFrame(data)
-#     dfs.append(df)
+# # Adjust layout
+# plt.tight_layout()
 #
-# dfs = pd.concat(dfs, ignore_index=True)
+# # Show the plots
+# #plt.show()
+# st.pyplot(fig)
 #
-# ###Plot #Death by subcounty
-# # Filter the DataFrame to create subsets for pushback = 0 and pushback = 1
-# df_pushback_0 = dfs[dfs['pushback'] == 0]
-# df_pushback_1 = dfs[dfs['pushback'] == 1]
+# ###Plot births by subcounty
+#
+# num_rows, num_cols = 4, 3
+#
+# # Create a grid of subplots
+# fig, axes = plt.subplots(num_rows, num_cols, figsize=(12, 8))
+#
+# # Iterate over j from 0 to 11
+# for j in range(num_rows * num_cols):
+# # Replace 7 with j to access different LB1s
+#     y_values = SC['LB1s'][j]
+#     y_values = y_values.T
+#
+#     # Calculate the row and column indices for the current subplot
+#     row, col = divmod(j, num_cols)
+#
+#     # Plot the data in the current subplot
+#     for i in range(4):
+#         axes[row, col].plot(range(12), y_values[i])
+#
+#     axes[row, col].set_title(f'Subcounty {j + 1}')
+#     axes[row, col].set_xlabel('Months')
+#     axes[row, col].set_ylabel('# of Births')
+#
+# # Adjust layout
+# plt.tight_layout()
+#
+# # Show the plots
+#     #plt.show()
+# st.pyplot(fig)
+#
+#
