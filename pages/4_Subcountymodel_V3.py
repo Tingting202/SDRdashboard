@@ -664,7 +664,7 @@ def get_ce(boutcomes, outcomes):
     if flag_int3:
         cost += 2000 * np.sum(LB_tot) / 100
     if flag_int4:
-        cost += 53.68 * LB_tot  # consider, does this actually happen across all facility levels (??) or only the mothers who receive ANC
+        cost += 53.68*np.sum(LB_tot)  # consider, does this actually happen across all facility levels (??) or only the mothers who receive ANC
 
     # if INT1
     # if INT2
