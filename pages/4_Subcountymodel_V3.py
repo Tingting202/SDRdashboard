@@ -37,22 +37,29 @@ with col1:
     flag_CHV = options[CHVint]
     # n_months_push_back = st.slider('Number of months to push back', min_value=1, max_value=36, step=1, value=2)
     # b_push_back = st.slider('Coefficient of push back', min_value=1, max_value=10, step=1, value=5)
-    CHV_b = st.slider('CHV effect on L4 prob', min_value=0.00, max_value=0.10, step=0.01, value=0.02)
+    if flag_CHV:
+        CHV_b = st.slider('CHV effect on L4 prob', min_value=0.00, max_value=0.10, step=0.01, value=0.02)
+    else:
+        CHV_b = 0
 with col2:
     ANCint = st.selectbox('ANC', list(options.keys()))
-    ANC2int = st.selectbox('ANC effect on complications', list(options.keys()))
-    flag_ANC2= options[ANC2int]
-    if flag_ANC2:
-        flag_ANC = 1
+    flag_ANC = options[ANCint]
+    if flag_ANC:
+        ANC2int = st.selectbox('ANC effect on complications', list(options.keys()))
+        flag_ANC2 = options[ANC2int]
     else:
-        flag_ANC = options[ANCint]
+        flag_ANC2 = 0
 with col3:
     Referint = st.selectbox('Referral', list(options.keys()))
     flag_refer = options[Referint]
-    referrate = st.slider('refer rate', min_value=0.0, max_value=1.0, step=0.1, value=0.5)
+    if flag_refer:
+        referrate = st.slider('refer rate', min_value=0.0, max_value=1.0, step=0.1, value=0.5)
+    else:
+        referrate = 0
 with col4:
     Transint = st.selectbox('Transfer', list(options.keys()))
     flag_trans = options[Transint]
+
 st.subheader('Innovative interventions to improve quality of care')
 col5, col6, col7, col8 = st.columns(4)
 with col5:
@@ -67,9 +74,12 @@ with col7:
 with col8:
     int3 = st.selectbox('Ultrasound', list(options.keys()))
     flag_int3 = options[int3]
-    diagnosisrate = st.slider('Ultrasound diagnosis rate', min_value=0.0, max_value=1.0, step=0.1, value=0.5)
+    if flag_int3:
+        diagnosisrate = st.slider('Ultrasound diagnosis rate', min_value=0.0, max_value=1.0, step=0.1, value=0.5)
+    else:
+        diagnosisrate = 0
 
-### PARAMETERs ###
+    ### PARAMETERs ###
 LB1s = [
     [1906, 1675, 2245, 118],
     [1799, 674, 1579, 0],
