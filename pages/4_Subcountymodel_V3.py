@@ -6,13 +6,31 @@ import plotly.express as px
 import pandas as pd
 import altair as alt
 
-### Sliders ###
-st.header('SDR interventions')
+#st.set_page_config(layout="wide")
 options = {
     'Off': 0,
     'On': 1
 }
-
+### Side bar ###
+with st.sidebar:
+    st.header("Outcomes Sidebar")
+    plotA_options = ("DALYs", "Live births",
+                     "APH complications", "PPH complications",
+                     "Effects of CHV pushback")
+    selected_plotA = st.selectbox(
+        label="Choose your interested outcomes at Kakamega level:",
+        options=plotA_options,
+    )
+    subint = st.selectbox('Choose whether to show subcounty outcomes', list(options.keys()))
+    flag_sub = options[subint]
+    if flag_sub:
+        plotB_options = ("Maternal deaths", "Live births")
+        selected_plotB = st.selectbox(
+            label="Choose your interested outcomes at subcounty level:",
+            options=plotB_options,
+        )
+### Sliders ###
+st.subheader('SDR interventions')
 col1, col2, col3, col4 = st.columns(4)
 with col1:
     CHVint = st.selectbox('CHV', list(options.keys()))
@@ -21,25 +39,32 @@ with col1:
     # b_push_back = st.slider('Coefficient of push back', min_value=1, max_value=10, step=1, value=5)
     CHV_b = st.slider('CHV effect on L4 prob', min_value=0.00, max_value=0.10, step=0.01, value=0.02)
 with col2:
-    subint = st.selectbox('Subcounty', list(options.keys()))
-    flag_sub = options[subint]
     ANCint = st.selectbox('ANC', list(options.keys()))
-    flag_ANC= options[ANCint]
     ANC2int = st.selectbox('ANC effect on complications', list(options.keys()))
     flag_ANC2= options[ANC2int]
+    if flag_ANC2:
+        flag_ANC = 1
+    else:
+        flag_ANC = options[ANCint]
 with col3:
-    Referint = st.selectbox('Referral intervention', list(options.keys()))
+    Referint = st.selectbox('Referral', list(options.keys()))
     flag_refer = options[Referint]
     referrate = st.slider('refer rate', min_value=0.0, max_value=1.0, step=0.1, value=0.5)
-    Transint = st.selectbox('Transfer intervention', list(options.keys()))
-    flag_trans = options[Transint]
 with col4:
+    Transint = st.selectbox('Transfer', list(options.keys()))
+    flag_trans = options[Transint]
+st.subheader('Innovative interventions to improve quality of care')
+col5, col6, col7, col8 = st.columns(4)
+with col5:
     int1 = st.selectbox('Obstetric drape', list(options.keys()))
     flag_int1 = options[int1]
+with col6:
     int2 = st.selectbox('IV Iron', list(options.keys()))
     flag_int2 = options[int2]
+with col7:
     int4 = st.selectbox('Antenatal corticosteroids', list(options.keys()))
     flag_int4 = options[int4]
+with col8:
     int3 = st.selectbox('Ultrasound', list(options.keys()))
     flag_int3 = options[int3]
     diagnosisrate = st.slider('Ultrasound diagnosis rate', min_value=0.0, max_value=1.0, step=0.1, value=0.5)
@@ -591,29 +616,29 @@ n_MM, n_nM, n_stats_H1, n_stats_H2, n_stats_L1, n_stats_L2, outcomes = run_model
 
 ###############PLOTING HERE####################
 
-categories = list(outcomes.keys())
-values1 = list(boutcomes.values())
-values2 = list(outcomes.values())
+if selected_plotA == "DALYs":
+    categories = list(outcomes.keys())
+    values1 = list(boutcomes.values())
+    values2 = list(outcomes.values())
 
-fig, ax = plt.subplots(figsize=(12, 4))
-bar_width = 0.35
-bar_positions1 = np.arange(len(categories))
-bar_positions2 = bar_positions1 + bar_width
+    fig, ax = plt.subplots(figsize=(12, 4))
+    bar_width = 0.35
+    bar_positions1 = np.arange(len(categories))
+    bar_positions2 = bar_positions1 + bar_width
 
-# Create side-by-side bar graphs
-ax.bar(bar_positions1, values1, width=bar_width, label='Baseline', color='blue')
-ax.bar(bar_positions2, values2, width=bar_width, label='With Intervention', color='orange')
+    # Create side-by-side bar graphs
+    ax.bar(bar_positions1, values1, width=bar_width, label='Baseline', color='blue')
+    ax.bar(bar_positions2, values2, width=bar_width, label='With Intervention', color='orange')
 
-# Add labels and title
-ax.set_xlabel('Morbidities and Mortalities')
-ax.set_ylabel('DALYs')
-ax.set_title('DALYs by Severe Health Outcomes')
-ax.set_xticks(bar_positions1 + bar_width / 2, categories)  # Set x-axis ticks in the middle of the grouped bars
-ax.set_xticklabels(categories)
-ax.legend()
+    # Add labels and title
+    ax.set_xlabel('Morbidities and Mortalities')
+    ax.set_ylabel('DALYs')
+    ax.set_title('DALYs by Severe Health Outcomes')
+    ax.set_xticks(bar_positions1 + bar_width / 2, categories)  # Set x-axis ticks in the middle of the grouped bars
+    ax.set_xticklabels(categories)
+    ax.legend()
 
-# Display the plot in Streamlit
-st.pyplot(fig)
+    st.pyplot(fig)
 
 bno_push_L = np.concatenate(bn_stats_L1['Initial Complications Post Referral'].to_numpy()).reshape((n_months, 4))
 bno_push_H = np.concatenate(bn_stats_H1['Initial Complications Post Referral'].to_numpy()).reshape((n_months, 4))
@@ -698,35 +723,36 @@ rpush = np.concatenate(n_stats_L2['Referrals'].to_numpy()).reshape((n_months, 4)
 to_plotbeg = np.vstack((brpush[0,:], rpush[0,:]))
 to_plotend = np.vstack((brpush[n_months-1,:], rpush[n_months-1,:]))
 
-fig, axes = plt.subplots(1,2,figsize = (12,4))
-for i in range(2):
-    categories = ['Home', 'L2/3', 'L4', 'L5']
-    if i==1:
-        values1 = to_plotend[0,:]
-        values2 = to_plotend[1,:]
-    else:
-        values1 = to_plotbeg[0,:]
-        values2 = to_plotbeg[1,:]
+if selected_plotA == "Live births":
+    fig, axes = plt.subplots(1,2,figsize = (12,4))
+    for i in range(2):
+        categories = ['Home', 'L2/3', 'L4', 'L5']
+        if i==1:
+            values1 = to_plotend[0,:]
+            values2 = to_plotend[1,:]
+        else:
+            values1 = to_plotbeg[0,:]
+            values2 = to_plotbeg[1,:]
 
-    # Set the width of the bars
-    bar_width = 0.35
+        # Set the width of the bars
+        bar_width = 0.35
 
-    # Set the positions of the bars on the x-axis
-    bar_positions1 = np.arange(len(categories))
-    bar_positions2 = bar_positions1 + bar_width
+        # Set the positions of the bars on the x-axis
+        bar_positions1 = np.arange(len(categories))
+        bar_positions2 = bar_positions1 + bar_width
 
-# Create the bar graph
-    axes[i].bar(bar_positions1, values1, width=bar_width, label='Group 1')
-    axes[i].bar(bar_positions2, values2, width=bar_width, label='Group 2')
-    axes[i].axhline(0, color='black', linestyle='--', linewidth=1)
-    axes[i].set_xticks(bar_positions1 + bar_width / 2, categories)
-    if i ==1:
-        axes[i].set_title('Change of LBs due to Referrals (32 months)')
-    else:
-        axes[i].set_title('Change of LBs due to Referrals (0 months)')
-#plt.tight_layout()
-plt.legend([' ', 'Baseline', 'With Intervention'])
-st.pyplot(fig)
+    # Create the bar graph
+        axes[i].bar(bar_positions1, values1, width=bar_width, label='Group 1')
+        axes[i].bar(bar_positions2, values2, width=bar_width, label='Group 2')
+        axes[i].axhline(0, color='black', linestyle='--', linewidth=1)
+        axes[i].set_xticks(bar_positions1 + bar_width / 2, categories)
+        if i ==1:
+            axes[i].set_title('Change of LBs due to Referrals (32 months)')
+        else:
+            axes[i].set_title('Change of LBs due to Referrals (0 months)')
+    #plt.tight_layout()
+    plt.legend([' ', 'Baseline', 'With Intervention'])
+    st.pyplot(fig)
 
 # get complications post referral for baseline
 bno_push_L = np.concatenate(bn_stats_L1['Initial Complications Post Referral'].to_numpy()).reshape((n_months, 4))
@@ -752,40 +778,40 @@ no_effect = (scale_CH_est / INT['comp']['APH']['inc'])
 to_plotbeg = np.vstack((push[0,:] / no_effect, push[0,:] / aph_effect_beg))
 to_plotend = np.vstack((push[n_months-1,:] / no_effect, push[n_months-1,:] / aph_effect_end))
 
-fig, axes = plt.subplots(1,2,figsize = (12,4))
-for i in range(2):
-    categories = ['Home', 'L2/3', 'L4', 'L5']
-    if i==1:
-        values1 = np.clip(list(to_plotend[0,:]), 0, None)
-        values2 = np.clip(list(to_plotend[1,:]), 0, None)
-        # values1 = to_plotend[0,:]
-        # values2 = to_plotend[1,:]
-    else:
-        values1 = np.clip(list(to_plotbeg[0,:]), 0, None)
-        values2 = np.clip(list(to_plotbeg[1,:]), 0, None)
-        # values1 = to_plotbeg[0,:]
-        # values2 = to_plotbeg[1,:]
+if selected_plotA == "APH complications":
+    fig, axes = plt.subplots(1,2,figsize = (12,4))
+    for i in range(2):
+        categories = ['Home', 'L2/3', 'L4', 'L5']
+        if i==1:
+            values1 = np.clip(list(to_plotend[0,:]), 0, None)
+            values2 = np.clip(list(to_plotend[1,:]), 0, None)
+            # values1 = to_plotend[0,:]
+            # values2 = to_plotend[1,:]
+        else:
+            values1 = np.clip(list(to_plotbeg[0,:]), 0, None)
+            values2 = np.clip(list(to_plotbeg[1,:]), 0, None)
+            # values1 = to_plotbeg[0,:]
+            # values2 = to_plotbeg[1,:]
 
-    # Set the width of the bars
-    bar_width = 0.35
+        # Set the width of the bars
+        bar_width = 0.35
 
-    # Set the positions of the bars on the x-axis
-    bar_positions1 = np.arange(len(categories))
-    bar_positions2 = bar_positions1 + bar_width
+        # Set the positions of the bars on the x-axis
+        bar_positions1 = np.arange(len(categories))
+        bar_positions2 = bar_positions1 + bar_width
 
-# Create the bar graph
-    axes[i].bar(bar_positions1, values1, width=bar_width, label='Group 1')
-    axes[i].bar(bar_positions2, values2, width=bar_width, label='Group 2')
-    axes[i].set_xticks(bar_positions1 + bar_width / 2, categories)
-    if i ==1:
-        axes[i].set_title('APH Complications by Facility Level (32 months)')
-    else:
-        axes[i].set_title('APH Complications by Facility Level (0 months)')
+    # Create the bar graph
+        axes[i].bar(bar_positions1, values1, width=bar_width, label='Group 1')
+        axes[i].bar(bar_positions2, values2, width=bar_width, label='Group 2')
+        axes[i].set_xticks(bar_positions1 + bar_width / 2, categories)
+        if i ==1:
+            axes[i].set_title('APH Complications by Facility Level (32 months)')
+        else:
+            axes[i].set_title('APH Complications by Facility Level (0 months)')
 
-#plt.tight_layout()
-plt.legend(['Baseline', 'With Intervention'])
-st.pyplot(fig)
-None
+    #plt.tight_layout()
+    plt.legend(['Baseline', 'With Intervention'])
+    st.pyplot(fig)
 
 ### PPH Hemorrhage ###
 pph_effect_beg_H = (scale_CH_est / (INT['comp']['PPH']['inc'] * INT['comp']['Anemia_PPH']['b'] *  INT['comp']['PP_PPH']['b'] * (1 - INT['ANC']['bs'] * (INT['ANC']['ANC_PPH']['b']))[0]))
@@ -798,148 +824,153 @@ no_effect = (scale_CH_est / INT['comp']['PPH']['inc'])
 to_plotbeg = np.vstack((push[0,:] / no_effect, push_L[0,:]/pph_effect_beg_L + push_H[0,:]/pph_effect_beg_H))
 to_plotend = np.vstack((push[n_months-1,:] / no_effect, push_L[n_months-1,:]/pph_effect_beg_L + push_H[n_months-1,:]/pph_effect_beg_H))
 
-fig, axes = plt.subplots(1,2,figsize = (12,4))
-for i in range(2):
-    categories = ['Home', 'L2/3', 'L4', 'L5']
-    if i==1:
-        values1 = np.clip(list(to_plotend[0,:]), 0, None)
-        values2 = np.clip(list(to_plotend[1,:]), 0, None)
-        # values1 = to_plotend[0,:]
-        # values2 = to_plotend[1,:]
-    else:
-        values1 = np.clip(list(to_plotbeg[0,:]), 0, None)
-        values2 = np.clip(list(to_plotbeg[1,:]), 0, None)
-        # values1 = to_plotbeg[0,:]
-        # values2 = to_plotbeg[1,:]
+if selected_plotA == "PPH complications":
+    fig, axes = plt.subplots(1,2,figsize = (12,4))
+    for i in range(2):
+        categories = ['Home', 'L2/3', 'L4', 'L5']
+        if i==1:
+            values1 = np.clip(list(to_plotend[0,:]), 0, None)
+            values2 = np.clip(list(to_plotend[1,:]), 0, None)
+            # values1 = to_plotend[0,:]
+            # values2 = to_plotend[1,:]
+        else:
+            values1 = np.clip(list(to_plotbeg[0,:]), 0, None)
+            values2 = np.clip(list(to_plotbeg[1,:]), 0, None)
+            # values1 = to_plotbeg[0,:]
+            # values2 = to_plotbeg[1,:]
 
-    # Set the width of the bars
-    bar_width = 0.35
+        # Set the width of the bars
+        bar_width = 0.35
 
-    # Set the positions of the bars on the x-axis
-    bar_positions1 = np.arange(len(categories))
-    bar_positions2 = bar_positions1 + bar_width
+        # Set the positions of the bars on the x-axis
+        bar_positions1 = np.arange(len(categories))
+        bar_positions2 = bar_positions1 + bar_width
 
-# Create the bar graph
-    axes[i].bar(bar_positions1, values1, width=bar_width, label='Group 1')
-    axes[i].bar(bar_positions2, values2, width=bar_width, label='Group 2')
-    axes[i].set_xticks(bar_positions1 + bar_width / 2, categories)
-    if i ==1:
-        axes[i].set_title('PPH Complications by Facility Level (32 months)')
-    else:
-        axes[i].set_title('PPH Complications by Facility Level (0 months)')
+    # Create the bar graph
+        axes[i].bar(bar_positions1, values1, width=bar_width, label='Group 1')
+        axes[i].bar(bar_positions2, values2, width=bar_width, label='Group 2')
+        axes[i].set_xticks(bar_positions1 + bar_width / 2, categories)
+        if i ==1:
+            axes[i].set_title('PPH Complications by Facility Level (32 months)')
+        else:
+            axes[i].set_title('PPH Complications by Facility Level (0 months)')
 
-#plt.tight_layout()
-plt.legend(['Baseline', 'With Intervention'])
-st.pyplot(fig)
-None
+    #plt.tight_layout()
+    plt.legend(['Baseline', 'With Intervention'])
+    st.pyplot(fig)
 
 no_push = np.concatenate(n_stats_L1['Initial Complications Post Referral'].to_numpy()).reshape((n_months, 4)) + np.concatenate(n_stats_H1['Initial Complications Post Referral'].to_numpy()).reshape((n_months, 4))
 push = np.concatenate(n_stats_L2['Initial Complications Post Referral'].to_numpy()).reshape((n_months, 4)) + np.concatenate(n_stats_L1['Initial Complications Post Referral'].to_numpy()).reshape((n_months, 4))
-fig, (ax1, ax2)= plt.subplots(1,2, figsize=(12, 4))
-for j in range(4):
-        ax1.plot(range(n_months), no_push)
-        ax2.plot(range(n_months), push)
 
-plt.suptitle('Complications facility level - Pushback')
-ax1.set_xlabel('Time')
-ax2.set_xlabel('Time')
-ax1.set_ylabel('Complications')
-ax2.set_ylabel('Complications')
-#plt.tight_layout()
-#plt.show()
-st.pyplot(fig)
+if selected_plotA == "Effects of CHV pushback":
+    fig, (ax1, ax2)= plt.subplots(1,2, figsize=(12, 4))
+    for j in range(4):
+            ax1.plot(range(n_months), no_push)
+            ax2.plot(range(n_months), push)
 
-# exclude home births
+    plt.suptitle('Complications facility level - Pushback')
+    ax1.set_xlabel('Time')
+    ax2.set_xlabel('Time')
+    ax1.set_ylabel('Complications')
+    ax2.set_ylabel('Complications')
+    #plt.tight_layout()
+    #plt.show()
+    st.pyplot(fig)
 
-num_rows, num_cols = 1, 2
+    # exclude home births
 
-# Create a grid of subplots
-fig, axes = plt.subplots(num_rows, num_cols, figsize=(12, 4))
+    num_rows, num_cols = 1, 2
 
-# Iterate over j from 0 to 1 (two subplots)
-for j in range(2):
-    # Replace 0 with j to access different data
-    nM = n_nM[:, :, j].T
+    # Create a grid of subplots
+    fig, axes = plt.subplots(num_rows, num_cols, figsize=(12, 4))
 
-    # Plot the data in the current subplot
-    for i in range(1, 4):
-        axes[j].plot(range(n_months), nM[i, :])
-    axes[j].set_title(f'Pushback {j}')
-    axes[j].set_xlabel('Months')
-    axes[j].set_ylabel('Deaths')
+    # Iterate over j from 0 to 1 (two subplots)
+    for j in range(2):
+        # Replace 0 with j to access different data
+        nM = n_nM[:, :, j].T
 
-plt.suptitle('Neonatal deaths by facility level - Pushback')
-#plt.tight_layout()
-#plt.show()
-st.pyplot(fig)
+        # Plot the data in the current subplot
+        for i in range(1, 4):
+            axes[j].plot(range(n_months), nM[i, :])
+        axes[j].set_title(f'Pushback {j}')
+        axes[j].set_xlabel('Months')
+        axes[j].set_ylabel('Deaths')
 
-fig, axes = plt.subplots(4, 3, figsize=(12, 8))
+    plt.suptitle('Neonatal deaths by facility level - Pushback')
+    #plt.tight_layout()
+    #plt.show()
+    st.pyplot(fig)
 
-# Loop through the subplots and plot the data
-j=0
-for x in range(4):
-    for y in range(3):
-        ax = axes[x, y]
+if flag_sub and selected_plotB == "Maternal deaths":
+    fig, axes = plt.subplots(4, 3, figsize=(12, 8))
+
+    # Loop through the subplots and plot the data
+    j=0
+    for x in range(4):
+        for y in range(3):
+            ax = axes[x, y]
+            for i in range(4):
+                ax.plot(range(n_months-1), n_MMs[1:, i, j, 0])
+                ax.set_title(f'SC {j}')
+                ax.set_xlabel('Months')
+                ax.set_ylabel('Deaths')
+            j+=1
+
+    plt.suptitle('Maternal deaths by subcounty and facility level')
+    #plt.tight_layout()
+    #plt.show()
+    st.pyplot(fig)
+
+if selected_plotA == "Effects of CHV pushback":
+    num_rows, num_cols = 1, 2
+
+    # Create a grid of subplots
+    fig, axes = plt.subplots(num_rows, num_cols, figsize=(12, 4))
+
+    # Iterate over j from 0 to 1 (two subplots)
+    for j in range(2):
+        # Replace 0 with j to access different data
+        MM = n_MM[:, :, j].T
+
+        # Plot the data in the current subplot
         for i in range(4):
-            ax.plot(range(n_months-1), n_MMs[1:, i, j, 0])
-            ax.set_title(f'SC {j}')
-            ax.set_xlabel('Months')
-            ax.set_ylabel('Deaths')
-        j+=1
+            axes[j].plot(range(n_months), MM[i, :])
+        axes[j].set_title(f'Pushback {j}')
+        axes[j].set_xlabel('Months')
+        axes[j].set_ylabel('Deaths')
 
-plt.suptitle('Maternal deaths by subcounty and facility level')
-#plt.tight_layout()
-#plt.show()
-st.pyplot(fig)
+    plt.suptitle('Maternal deaths by facility level - Pushback')
+    #plt.tight_layout()
+    #plt.show()
+    st.pyplot(fig)
 
-num_rows, num_cols = 1, 2
+if flag_sub and selected_plotB == "Live births":
+    num_rows, num_cols = 4, 3
 
-# Create a grid of subplots
-fig, axes = plt.subplots(num_rows, num_cols, figsize=(12, 4))
+    # Create a grid of subplots
+    fig, axes = plt.subplots(num_rows, num_cols, figsize=(12, 8))
 
-# Iterate over j from 0 to 1 (two subplots)
-for j in range(2):
-    # Replace 0 with j to access different data
-    MM = n_MM[:, :, j].T
+    # Iterate over j from 0 to 11
+    for j in range(num_rows * num_cols):
+        # Replace 7 with j to access different LB1s
+        y_values = SC['LB1s'][j]
+        y_values = y_values.T
 
-    # Plot the data in the current subplot
-    for i in range(4):
-        axes[j].plot(range(n_months), MM[i, :])
-    axes[j].set_title(f'Pushback {j}')
-    axes[j].set_xlabel('Months')
-    axes[j].set_ylabel('Deaths')
+        # Calculate the row and column indices for the current subplot
+        row, col = divmod(j, num_cols)
 
-plt.suptitle('Maternal deaths by facility level - Pushback')
-#plt.tight_layout()
-#plt.show()
-st.pyplot(fig)
+        # Plot the data in the current subplot
+        for i in range(4):
+            axes[row, col].plot(range(n_months), y_values[i])
 
-num_rows, num_cols = 4, 3
+        axes[row, col].set_title(f'Subcounty {j + 1}')
+        axes[row, col].set_xlabel('Months')
+        axes[row, col].set_ylabel('# of Births')
 
-# Create a grid of subplots
-fig, axes = plt.subplots(num_rows, num_cols, figsize=(12, 8))
-
-# Iterate over j from 0 to 11
-for j in range(num_rows * num_cols):
-    # Replace 7 with j to access different LB1s
-    y_values = SC['LB1s'][j]
-    y_values = y_values.T
-
-    # Calculate the row and column indices for the current subplot
-    row, col = divmod(j, num_cols)
-
-    # Plot the data in the current subplot
-    for i in range(4):
-        axes[row, col].plot(range(n_months), y_values[i])
-
-    axes[row, col].set_title(f'Subcounty {j + 1}')
-    axes[row, col].set_xlabel('Months')
-    axes[row, col].set_ylabel('# of Births')
-
-fig.suptitle('Live births by subcounty and facility level')
-#plt.tight_layout()
-#plt.show()
-st.pyplot(fig)
+    fig.suptitle('Live births by subcounty and facility level')
+    #plt.tight_layout()
+    #plt.show()
+    st.pyplot(fig)
 
 ##############PLOT in Streamlit version##################
 # if flag_sub:
