@@ -1,85 +1,146 @@
 import streamlit as st
 from matplotlib import pyplot as plt
+import geopandas as gpd
 import numpy as np
 from sympy import symbols, Eq, solve
 import plotly.express as px
 import pandas as pd
 import altair as alt
 
+st.set_page_config(layout="wide")
+st.subheader("Choose interventions")
 #st.set_page_config(layout="wide")
 options = {
     'Off': 0,
     'On': 1
 }
+
+selected_plotA = None
+selected_plotB = None
+selected_plotC = None
+flag_sub = 0
+
 ### Side bar ###
 with st.sidebar:
-    st.header("Outcomes Sidebar")
-    plotA_options = ("DALYs", "Live births",
-                     "APH complications", "PPH complications",
-                     "Effects of CHV pushback")
-    selected_plotA = st.selectbox(
-        label="Choose your interested outcomes at Kakamega level:",
-        options=plotA_options,
-    )
-    subint = st.selectbox('Choose whether to show subcounty outcomes', list(options.keys()))
-    flag_sub = options[subint]
-    if flag_sub:
-        plotB_options = ("Maternal deaths", "Live births")
+    st.header("Outcomes sidebar")
+    level_options = ("County", "Subcounty", "Subcounty in Map")
+    select_level = st.selectbox('Select level of interest:', level_options)
+    if select_level == "County":
+        plotA_options = ("Live births", "Neonatal deaths", "Maternal deaths", "Cost effectiveness", "DALYs") #To be added: "MMR", "PPH complications", "Effects of CHV pushback"
+        selected_plotA = st.selectbox(
+            label="Select outcome of interest:",
+            options=plotA_options,
+        )
+    if select_level == "Subcounty":
+        flag_sub = 1
+        plotB_options = ("Maternal deaths", "Neonatal deaths", "Live births")
         selected_plotB = st.selectbox(
-            label="Choose your interested outcomes at subcounty level:",
+            label="Select outcome of interest:",
             options=plotB_options,
         )
+    if select_level == "Subcounty in Map":
+        flag_sub = 1
+        plotC_options = ("MMR", "NMR", "% deliveries in L4/5")
+        selected_plotC = st.selectbox(
+            label="Choose your interested outcomes in map:",
+            options=plotC_options,
+        )
 ### Sliders ###
-st.subheader('SDR interventions')
 col1, col2, col3, col4 = st.columns(4)
 with col1:
-    CHVint = st.selectbox('CHV', list(options.keys()))
-    flag_CHV = options[CHVint]
-    # n_months_push_back = st.slider('Number of months to push back', min_value=1, max_value=36, step=1, value=2)
-    # b_push_back = st.slider('Coefficient of push back', min_value=1, max_value=10, step=1, value=5)
-    if flag_CHV:
-        CHV_b = st.slider('CHV effect on L4 prob', min_value=0.00, max_value=0.10, step=0.01, value=0.02)
-    else:
-        CHV_b = 0
-with col2:
-    ANCint = st.selectbox('ANC', list(options.keys()))
-    flag_ANC = options[ANCint]
-    if flag_ANC:
+    st.text("Healthcare")
+    ANCint = st.checkbox('ANC')
+    if ANCint:
+        flag_ANC = 1
         ANC2int = st.selectbox('ANC effect on complications', list(options.keys()))
         flag_ANC2 = options[ANC2int]
     else:
+        flag_ANC = 0
         flag_ANC2 = 0
-with col3:
-    Referint = st.selectbox('Referral', list(options.keys()))
-    flag_refer = options[Referint]
-    if flag_refer:
+
+    Referint = st.checkbox('Referal')
+    if Referint:
+        flag_refer = 1
         referrate = st.slider('refer rate', min_value=0.0, max_value=1.0, step=0.1, value=0.5)
     else:
+        flag_refer = 0
         referrate = 0
-with col4:
-    Transint = st.selectbox('Transfer', list(options.keys()))
-    flag_trans = options[Transint]
+with col2:
+    st.text("Healthcare")
+    int1 = st.checkbox('Obstetric drape')
+    if int1:
+        flag_int1 = 1
+    else:
+        flag_int1 = 0
 
-st.subheader('Innovative interventions to improve quality of care')
-col5, col6, col7, col8 = st.columns(4)
-with col5:
-    int1 = st.selectbox('Obstetric drape', list(options.keys()))
-    flag_int1 = options[int1]
-with col6:
-    int2 = st.selectbox('IV Iron', list(options.keys()))
-    flag_int2 = options[int2]
-with col7:
-    int4 = st.selectbox('Antenatal corticosteroids', list(options.keys()))
-    flag_int4 = options[int4]
-with col8:
-    int3 = st.selectbox('Ultrasound', list(options.keys()))
-    flag_int3 = options[int3]
-    if flag_int3:
+    int2 = st.checkbox('IV Iron')
+    if int2:
+        flag_int2 = 1
+    else:
+        flag_int2 = 0
+
+    int4 = st.checkbox('Antenatal corticosteroids')
+    if int4:
+        flag_int4 = 1
+    else:
+        flag_int4 = 0
+
+    int3 = st.checkbox('Ultrasound')
+    if int3:
+        flag_int3 = 1
         diagnosisrate = st.slider('Ultrasound diagnosis rate', min_value=0.0, max_value=1.0, step=0.1, value=0.5)
     else:
+        flag_int3 = 0
         diagnosisrate = 0
+with col3:
+    st.text("Infrastructure")
+    CHVint = st.checkbox('CHV')
+    if CHVint:
+        flag_CHV = 1
+    else:
+        flag_CHV = 0
+    Transint = st.checkbox('Increase transfer by 25%')
+    if Transint:
+        flag_trans = 1
+    else:
+        flag_trans = 0
+    Transint2 = st.checkbox('Stop transfer after the halfway point')
+    if Transint2:
+        flag_trans2 = 1
+    else:
+        flag_trans2 = 0
+with col4:
+    st.text("SDR")
 
-    ### PARAMETERs ###
+
+### Data files ###
+# df = pd.read_excel('DHS_Cluster.xlsx', sheet_name='DHS 2022')
+# df_subcounty = pd.read_excel('DHS_Cluster.xlsx', sheet_name='Cluster_Subcounty_2022')
+# df = df.merge(df_subcounty, left_on='cluster', right_on='clusterID')
+# anc_dist = df[['Subcounty', 'anc', 'delivery']].groupby(['Subcounty', 'delivery']).value_counts(normalize=True).reset_index()
+shapefile_path2 = 'ke_subcounty.shp'
+
+
+### PARAMETERs ###
+subcounties = [
+    "Butere",
+    "Ikolomani",
+    "Khwisero",
+    "Likuyani",
+    "Lugari",
+    "Lurambi",
+    "Malava",
+    "Matungu",
+    "Mumias East",
+    "Mumias West",
+    "Navakholo",
+    "Shinyalu"
+]
+
+comps = ['Low PPH', 'High PPH', 'Neonatal Deaths', 'Maternal Deaths']
+DALYs = [0.114, 0.324, 1, 0.54]
+DALY_dict = {x: 0 for x in comps}
+
 LB1s = [
     [1906, 1675, 2245, 118],
     [1799, 674, 1579, 0],
@@ -171,8 +232,9 @@ LB_tot = [23729, 18196, 20709, 5126]
 
 scale_CH_est = 0.035*0.5
 scale_CL_est = 0.035*0.5
-scale_N = 16
+scale_N = 16                # neonatal mortality
 
+### MODEL PERTINENT ###
 ### MODEL PERTINENT ###
 n_months = 36
 t = np.arange(n_months)
@@ -180,32 +242,46 @@ t = np.arange(n_months)
 SC = {
     'n': 12,
     'LB1s': {
-        0: np.zeros((n_months, 4)),
-        1: np.zeros((n_months, 4)),
-        2: np.zeros((n_months, 4)),
-        3: np.zeros((n_months, 4)),
-        4: np.zeros((n_months, 4)),
-        5: np.zeros((n_months, 4)),
-        6: np.zeros((n_months, 4)),
-        7: np.zeros((n_months, 4)),
-        8: np.zeros((n_months, 4)),
-        9: np.zeros((n_months, 4)),
-        10: np.zeros((n_months, 4)),
-        11: np.zeros((n_months, 4)),
+        0: np.zeros((n_months,4)),
+        1: np.zeros((n_months,4)),
+        2: np.zeros((n_months,4)),
+        3: np.zeros((n_months,4)),
+        4: np.zeros((n_months,4)),
+        5: np.zeros((n_months,4)),
+        6: np.zeros((n_months,4)),
+        7: np.zeros((n_months,4)),
+        8: np.zeros((n_months,4)),
+        9: np.zeros((n_months,4)),
+        10: np.zeros((n_months,4)),
+        11: np.zeros((n_months,4)),
     },
     'LB2s': {
-        0: np.zeros((n_months, 4)),
-        1: np.zeros((n_months, 4)),
-        2: np.zeros((n_months, 4)),
-        3: np.zeros((n_months, 4)),
-        4: np.zeros((n_months, 4)),
-        5: np.zeros((n_months, 4)),
-        6: np.zeros((n_months, 4)),
-        7: np.zeros((n_months, 4)),
-        8: np.zeros((n_months, 4)),
-        9: np.zeros((n_months, 4)),
-        10: np.zeros((n_months, 4)),
-        11: np.zeros((n_months, 4)),
+        0: np.zeros((n_months,4)),
+        1: np.zeros((n_months,4)),
+        2: np.zeros((n_months,4)),
+        3: np.zeros((n_months,4)),
+        4: np.zeros((n_months,4)),
+        5: np.zeros((n_months,4)),
+        6: np.zeros((n_months,4)),
+        7: np.zeros((n_months,4)),
+        8: np.zeros((n_months,4)),
+        9: np.zeros((n_months,4)),
+        10: np.zeros((n_months,4)),
+        11: np.zeros((n_months,4)),
+    },
+    'Class': {
+        0: 0.767669453,
+        1: 0.707382485,
+        2: 0.583722902,
+        3: 0.353483752,
+        4: 0.621879554,
+        5: 0.341297702,
+        6: 0.78264497,
+        7: 0.881471916,
+        8: 0.815330894,
+        9: 0.583155486,
+        10: 0.759252685,
+        11: 0.708221685,
     }
 }
 
@@ -244,12 +320,20 @@ n_CLs = {
 }
 
 for i in range(SC['n']):
-    SC['LB1s'][i][0, :] = LB1s[i]
-    SC['LB2s'][i][0, :] = LB1s[i]
+    SC['LB1s'][i][0,:] = LB1s[i]
+    SC['LB2s'][i][0,:] = LB1s[i]
 
 for i in range(SC['n']):
     n_CHs['refer'][i] = CHs[i]
     n_CLs['refer'][i] = CLs[i]
+
+### ATTEMPT TO STANDARDIZE FORMAT BELOW ###
+# ex: ANC_eclampsia -> effect of ANC on reduction in eclampsia (direct reduction in complications)
+# complication reductions will go
+
+# FIRST LEVEL COMPLICATION INTERVENTION: intervention directly reduces initial number of complications
+# SECOND LEVEL COMPLICATION INTERVENTION: intervention reduces some other effect, for example, ANC, that then reduces complications
+# FIRST LEVEL MORTALITY INTERVENTION: intervention directly affects mortality due to a specific cause
 
 INT = {
     'CHV': {
@@ -265,7 +349,7 @@ INT = {
         'bs': None,
         'b': None,
         'ANC_PPH': {
-            'b': 0.5 * 0.017 * (1 - 0.812) / scale_CH_est
+            'b': 0.5*0.017*(1-0.812)/scale_CH_est
         },
         'ANC_msepsis': {
             'b': None
@@ -274,7 +358,7 @@ INT = {
             'b': None
         },
         'ANC_obs_labor': {
-            'b': 0.5 * 0.1 * (1 - 0.62) / scale_CH_est
+            'b': 0.5*0.1*(1-0.62)/scale_CH_est
         },
         'ANC_rup_uterus': {
             'b': None
@@ -287,29 +371,29 @@ INT = {
         'b0': 0,
         'bs': None,
         'b': None,
-        'refer_rate': 0  # 0
+        'refer_rate': 0 # 1 #0
     },
     'trans': {
         'b0': 0,
-        'bs': np.ones(n_months),
+        'bs': np.zeros(n_months),
         'b': None
     },
-    'comp': {
+    'mcomp': {
         'PPH': {
-            'inc': 0.017 * 0.5,
+            'inc': 0.017*0.5,
             'b0': 1,
             'b': 1
         },
         'APH': {
-            'inc': 0.0039 * 0.5,
+            'inc': 0.0039*0.5,
             'b0': 1,
             'b': 1
         },
         'msepsis': {
-            'inc': 0.00159 * 0.5
+            'inc': 0.00159*0.5
         },
         'eclampsia': {
-            'inc': 0.0046 * 0.5
+            'inc': 0.0046*0.5
         },
         'obs_labor': {
             'inc': 0.01
@@ -327,7 +411,7 @@ INT = {
             'b': 1
         },
         'PP': {
-            'inc': 0.0027 * 0.5,
+            'inc': 0.0027*0.5,
             'b0': 1,
             'b': 1
         },
@@ -336,60 +420,151 @@ INT = {
         }
 
     },
+    'ncomp': {
+        'preterm': {
+            'inc': 0.002438884431,
+            'b': 1,                   # this actually reduces the number of neonatal mortalities
+            'int_effect': 0.84       # intervention effect
+        }
+    },
     'mort': {
         'red': 0,
-        'b': 0
+        'b': 0,
+        'n_preterm': 0.1036808413,
+        'n_overall': 0.013699,
+        'n_asphyxia': 0.004313/0.013699,
+        'n_sepsis': 0.002237/0.013699
     },
-    'neo': {
-        'preterm': 1
-    },
-    'ultrasound': {
-        'diagnosis_rate': 0
+    'ultrasound':{
+        'diagnosis_rate': 0 # 1 #0
     }
 }
+#INT['mort']['n_asphyxia']
 
-Capacity_ratio1 = np.zeros((n_months, SC['n']))
-Capacity_ratio2 = np.zeros((n_months, SC['n']))
-Push_back = np.zeros((n_months, SC['n']))
-n_MM = np.zeros((n_months, 4, 2))  # number of months, for each hospital level, with and without pushback
-n_nM = np.zeros((n_months, 4, 2))  # neonatal mortality
-n_MMs = np.zeros((n_months, 4, 12, 2))
-p_MMs = np.zeros((n_months, 4, 12, 2))
+Capacity_ratio1 = np.zeros((n_months,SC['n']))
+Capacity_ratio2 = np.zeros((n_months,SC['n']))
+Push_back = np.zeros((n_months,SC['n']))
+n_MM = np.zeros((n_months,4,2)) # number of months, for each hospital level, with and without pushback
+n_nM = np.zeros((n_months,4,2)) # neonatal mortality
+n_MMs = np.zeros((n_months,4,12,2))
+p_MMs = np.zeros((n_months,4,12,2))
+n_nMs = np.zeros((n_months,4,12,2))
+p_nMs = np.zeros((n_months,4,12,2))
 
 ####Referral due to Ultrasound at whole county level#######
-# Calculate the number of mothers with placenta previa and placental abruption
-N_pp = np.array(LB_tot) * 0.0027  # placenta previa
-N_pa = np.array(LB_tot) * 0.01  # placental abruption
+#Calculate the number of mothers with placenta previa and placental abruption
+N_pp = np.array(LB_tot) * 0.0027  #placenta previa
+N_pa = np.array(LB_tot) * 0.01  #placental abruption
 N_pph_bypp = N_pp * 0.0199
 N_pph_bypa = N_pa * 0.182
 N_preterm_bypp = N_pp * 0.559
 N_preterm_bypa = N_pa * 0.396
 N_preterm_byother = np.array(LB_tot) * 0.023523 - (N_preterm_bypp + N_preterm_bypa)
-# Calculate the number of PPH, APH, and preterm from our facility data
+#Calculate the number of PPH, APH, and preterm from our facility data
 N_pph_facility = np.array(LB_tot) * 0.017
 N_preterm_facility = np.array(LB_tot) * 0.023523
 
-# Calculate the number of pph, aph, and preterm can be detected due to ultrasound diagnosis
+#Calculate the number of pph, aph, and preterm can be detected due to ultrasound diagnosis
 N_pph_detected = N_pph_bypp * 0.875 + N_pph_bypa * 0.57
 N_preterm_detected = N_preterm_bypp * 0.875 + N_preterm_bypa * 0.57 + N_preterm_byother * 0.99
-# Assume all detected pph in L2/L3 will be referred to L4 or L5
-N_pph_refered = np.array([0, -N_pph_detected[1], N_pph_detected[1] * 0.5, N_pph_detected[1] * 0.5])
-N_preterm_refered = np.array([0, -N_preterm_detected[1], N_preterm_detected[1] * 0.5, N_preterm_detected[1] * 0.5])
-
+#Assume all detected pph in L2/L3 will be referred to L4 or L5
+N_pph_refered = np.array([0, -N_pph_detected[1], N_pph_detected[1]*0.5, N_pph_detected[1]*0.5])
+N_preterm_refered = np.array([0, -N_preterm_detected[1], N_preterm_detected[1]*0.5, N_preterm_detected[1]*0.5])
 ### CHOOSE INTERVENTIONS ###
+
 def comp_reduction(oddsratio, p_expose, p_comp, int_expose):
     """given odds ratio and exposure, return change in complications due to change in exposure"""
 
     x, y = symbols('x y')
-    eq1 = Eq(x / (1 - x) / (y / (1 - y)) - oddsratio, 0)
-    eq2 = Eq(p_comp - p_expose * x - (1 - p_expose) * y, 0)
-    solution = solve((eq1, eq2), (x, y))[0]
+    eq1 = Eq(x/(1-x)/(y/(1-y))-oddsratio,0)
+    eq2 = Eq(p_comp - p_expose*x - (1-p_expose)*y,0)
+    solution = solve((eq1,eq2), (x, y))[0]
 
-    base_comp = solution[0] * p_expose + solution[1] * (1 - p_expose)
-    new_comp = solution[0] * p_expose * int_expose + solution[1] * (1 - p_expose * int_expose)
+    base_comp = solution[0]*p_expose + solution[1]*(1-p_expose)
+    new_comp = solution[0]*p_expose*int_expose + solution[1]*(1-p_expose*int_expose)
 
-    change = (scale_CH_est - base_comp + new_comp) / scale_CH_est
+    change = (scale_CH_est - base_comp + new_comp)/scale_CH_est
     return change
+
+def set_flags(flags):
+    flag_sub = flags[0]
+    flag_CHV = flags[1]
+    flag_ANC = flags[2]
+    flag_ANC2 = flags[3]
+    flag_refer = flags[4]
+    # flag_trans = flags[5]
+    flag_trans = flags[5]
+    flag_int1 = flags[6]   # Obstetric drape
+    # this would be implemented everywhere except home
+    flag_int2 = flags[7]   # Anemia reduction through IV Iron
+    # this occurs through ANC, so should be okay everywhere (we should consider ANC incidence - above baseline)
+    flag_int3 = flags[8]   # ultrasound
+    # this occurs through ANC, so should be okay everywhere (we should consider ANC incidence - above baseline)
+    flag_int4 = flags[9]   # antenatal corticosteroids - reduction of neonatal mortality
+    # this occurs through ANC, so should also be okay everywhere
+    flag_trans2 = flags[10]
+
+    # Update dictionary values based on flags
+    if flag_CHV:
+        INT['CHV']['L4']['b'] = 0.02
+    else:
+        INT['CHV']['L4']['b'] = 0
+    if flag_ANC:
+        INT['ANC']['b0'] = 0.03
+    else:
+        INT['ANC']['b0'] = 0
+    if flag_refer:
+        INT['refer']['b0'] = 0.1
+    else:
+        INT['refer']['b0'] = 0
+    if flag_trans:
+        #"""transfer for class 2 bumps up from 1 to 1.25"""
+        INT['trans']['bs'] = np.repeat(1.25,n_months)
+    else:
+        INT['trans']['bs'] = np.ones(n_months)
+    if flag_trans2:
+        #"""transfer for class 2 stays at 1, but stops after the halfway point"""
+        INT['trans']['b0'] = np.ones(n_months)
+        INT['trans']['bs'] = INT['trans']['b0'] * (t < n_months / 2)
+    else:
+        INT['trans']['bs'] = np.ones(n_months)
+    if flag_int1:
+        INT['mcomp']['PPH']['b'] = np.array([1, 1 - 0.6 * INT['mcomp']['PPH']['inc']/(scale_CH_est), 1 - 0.6 * INT['mcomp']['PPH']['inc']/(scale_CH_est), 1 - 0.6 * INT['mcomp']['PPH']['inc']/(scale_CH_est)]) # difference from original
+    else:
+        INT['mcomp']['PPH']['b'] = 1
+    if flag_int2:
+        INT['mcomp']['Anemia_PPH']['b'] = comp_reduction(3.54, INT['mcomp']['Anemia']['inc'], INT['mcomp']['PPH']['inc'], 0.3)
+        INT['mcomp']['Anemia_APH']['b'] = comp_reduction(1.522, INT['mcomp']['Anemia']['inc'], INT['mcomp']['APH']['inc'], 0.3)
+    else:
+        INT['mcomp']['Anemia_PPH']['b'] = 1
+        INT['mcomp']['Anemia_APH']['b'] = 1
+    if flag_int3:
+        INT['ultrasound']['diagnosis_rate'] = diagnosisrate
+    else:
+        INT['ultrasound']['diagnosis_rate'] = 0
+    if flag_int4:
+        if flag_ANC:
+            new_mort = INT['ncomp']['preterm']['inc']*INT['mort']['n_preterm']*INT['ncomp']['preterm']['int_effect']
+            INT['ncomp']['preterm']['b'] = (INT['mort']['n_overall'] - new_mort)/INT['mort']['n_overall']
+    else:
+        INT['ncomp']['preterm']['b'] = 1
+
+    INT['ANC']['bs'] = 1 - (1 - INT['ANC']['b0']) ** np.minimum(t, 12)
+    INT['refer']['bs'] = INT['refer']['b0'] * (t - 1)
+
+    if flag_ANC:
+        #"""effect of ANC on complication reduction for regular ANC"""
+        INT['ANC']['ANC_msepsis']['b'] = np.array([comp_reduction(4, INT['mcomp']['msepsis']['inc'], INT['ANC']['inc'], i) for i in (1-INT['ANC']['bs']/(INT['ANC']['b0']*12))])
+        INT['ANC']['ANC_eclampsia']['b'] = np.array([comp_reduction(1.41, INT['mcomp']['eclampsia']['inc'], INT['ANC']['inc'], i) for i in (1-INT['ANC']['bs']/(INT['ANC']['b0']*12))])
+        INT['ANC']['ANC_rup_uterus']['b'] = np.array([comp_reduction(6.29, INT['mcomp']['rup_uterus']['inc'], INT['ANC']['inc'], i) for i in (1-INT['ANC']['bs']/(INT['ANC']['b0']*12))])
+
+    if flag_ANC2:
+        #"""effect of ANC on complication reduction on top of regular ANC"""
+        flag_ANC = 1
+        INT['ANC']['bs'] = INT['ANC']['bs'] * (INT['ANC']['ANC_PPH']['b'] * INT['ANC']['ANC_msepsis']['b'] * INT['ANC']['ANC_eclampsia']['b'] * INT['ANC']['ANC_obs_labor']['b'] * INT['ANC']['ANC_rup_uterus']['b'])
+        INT['mort']['b'] = INT['ANC']['ANC_preterm']['b']
+
+    return INT
 
 def f_INT_LB_effect(SC_LB_previous, INT, flag_push_back, i, Capacity_ratio):
     """calculates pushback effect on change in live births """
@@ -433,7 +608,7 @@ def f_MM(LB_tot, SDR_multiplier_0, scale_CH_est, n_C0_refer, q_C0_transfer_from,
     n_MM = n_MM + np.maximum(0, n_not_transfer) * p_MM                       # considering transfer, not transfer, effect on mortality
     n_MM = n_MM + n_transfer_in * p_MM * p_MM_scale_transfer
 
-    n_nM = n_MM * scale_N * INT['neo']['preterm']
+    n_nM = n_MM * scale_N * INT['ncomp']['preterm']['b']
     # n_nM = max(0, n_nM - INT['mort']['red'] * LB_tot_k)
 
     stats = [q_C0_transfer_from, n_initial_est_k, n_refer_k, n_initial_C]
@@ -441,87 +616,108 @@ def f_MM(LB_tot, SDR_multiplier_0, scale_CH_est, n_C0_refer, q_C0_transfer_from,
     return n_MM, n_nM, stats
 
 
-comps = ['Low PPH', 'High PPH', 'Neonatal Deaths', 'Maternal Deaths']
-DALYs = [0.114, 0.324, 1, 0.54]
-DALY_dict = {x: 0 for x in comps}
-
 def run_model(flags):
+    """runs whole model"""
+
+    SC = {
+        'n': 12,
+        'LB1s': {
+            0: np.zeros((n_months, 4)),
+            1: np.zeros((n_months, 4)),
+            2: np.zeros((n_months, 4)),
+            3: np.zeros((n_months, 4)),
+            4: np.zeros((n_months, 4)),
+            5: np.zeros((n_months, 4)),
+            6: np.zeros((n_months, 4)),
+            7: np.zeros((n_months, 4)),
+            8: np.zeros((n_months, 4)),
+            9: np.zeros((n_months, 4)),
+            10: np.zeros((n_months, 4)),
+            11: np.zeros((n_months, 4)),
+        },
+        'LB2s': {
+            0: np.zeros((n_months, 4)),
+            1: np.zeros((n_months, 4)),
+            2: np.zeros((n_months, 4)),
+            3: np.zeros((n_months, 4)),
+            4: np.zeros((n_months, 4)),
+            5: np.zeros((n_months, 4)),
+            6: np.zeros((n_months, 4)),
+            7: np.zeros((n_months, 4)),
+            8: np.zeros((n_months, 4)),
+            9: np.zeros((n_months, 4)),
+            10: np.zeros((n_months, 4)),
+            11: np.zeros((n_months, 4)),
+        },
+        'Class': {
+            0: 0.767669453,
+            1: 0.707382485,
+            2: 0.583722902,
+            3: 0.353483752,
+            4: 0.621879554,
+            5: 0.341297702,
+            6: 0.78264497,
+            7: 0.881471916,
+            8: 0.815330894,
+            9: 0.583155486,
+            10: 0.759252685,
+            11: 0.708221685,
+        }
+    }
+
+    n_CHs = {
+        'refer': {
+            0: np.zeros((4)),
+            1: np.zeros((4)),
+            2: np.zeros((4)),
+            3: np.zeros((4)),
+            4: np.zeros((4)),
+            5: np.zeros((4)),
+            6: np.zeros((4)),
+            7: np.zeros((4)),
+            8: np.zeros((4)),
+            9: np.zeros((4)),
+            10: np.zeros((4)),
+            11: np.zeros((4)),
+        }
+    }
+
+    n_CLs = {
+        'refer': {
+            0: np.zeros((4)),
+            1: np.zeros((4)),
+            2: np.zeros((4)),
+            3: np.zeros((4)),
+            4: np.zeros((4)),
+            5: np.zeros((4)),
+            6: np.zeros((4)),
+            7: np.zeros((4)),
+            8: np.zeros((4)),
+            9: np.zeros((4)),
+            10: np.zeros((4)),
+            11: np.zeros((4)),
+        }
+    }
+
+    for i in range(SC['n']):
+        SC['LB1s'][i][0, :] = LB1s[i]
+        SC['LB2s'][i][0, :] = LB1s[i]
+
+    for i in range(SC['n']):
+        n_CHs['refer'][i] = CHs[i]
+        n_CLs['refer'][i] = CLs[i]
+    Capacity_ratio1 = np.zeros((n_months, SC['n']))
+    Capacity_ratio2 = np.zeros((n_months, SC['n']))
+    Push_back = np.zeros((n_months, SC['n']))
+    n_MM = np.zeros((n_months, 4, 2))  # number of months, for each hospital level, with and without pushback
+    n_nM = np.zeros((n_months, 4, 2))  # neonatal mortality
+    n_MMs = np.zeros((n_months, 4, 12, 2))
+    p_MMs = np.zeros((n_months, 4, 12, 2))
+    n_nMs = np.zeros((n_months, 4, 12, 2))
+    p_nMs = np.zeros((n_months, 4, 12, 2))
     outcomes_dict = {x: 0 for x in comps}
 
-    flag_sub = flags[0]
-    flag_CHV = flags[1]
-    flag_ANC = flags[2]
-    flag_ANC2 = flags[3]
-    flag_refer = flags[4]
-    flag_trans = flags[5]
-    flag_int1 = flags[6]  # Obstetric drape
-    flag_int2 = flags[7]  # Anemia reduction through IV Iron
-    flag_int3 = flags[8]  # ultrasound
-    flag_int4 = flags[9]  # antenatal corticosteroids - reduction of neonatal mortality
-
-    # Update dictionary values based on flags
-    if flag_CHV:
-        INT['CHV']['L4']['b'] = CHV_b
-    else:
-        INT['CHV']['L4']['b'] = 0
-    if flag_ANC:
-        INT['ANC']['b0'] = 0.03
-    else:
-        INT['ANC']['b0'] = 0
-    if flag_refer:
-        INT['refer']['b0'] = 0.1
-        INT['refer']['refer_rate'] = referrate
-    else:
-        INT['refer']['b0'] = 0
-        INT['refer']['refer_rate'] = 0
-    if flag_trans:
-        INT['trans']['b0'] = 1
-        INT['trans']['bs'] = INT['trans']['b0'] * (t < n_months / 2)
-    else:
-        INT['trans']['bs'] = np.ones(n_months)
-    if flag_int1:
-        INT['comp']['PPH']['b'] = 1 - 0.6 * INT['comp']['PPH']['inc'] / (scale_CH_est)  # difference from original
-    else:
-        INT['comp']['PPH']['b'] = 1
-    if flag_int2:
-        INT['comp']['Anemia_PPH']['b'] = comp_reduction(3.54, INT['comp']['Anemia']['inc'], INT['comp']['PPH']['inc'],
-                                                        0.3)
-        INT['comp']['Anemia_APH']['b'] = comp_reduction(1.522, INT['comp']['Anemia']['inc'], INT['comp']['APH']['inc'],
-                                                        0.3)
-    else:
-        INT['comp']['Anemia_PPH']['b'] = 1
-        INT['comp']['Anemia_APH']['b'] = 1
-    if flag_int3:
-        INT['ultrasound']['diagnosis_rate'] = diagnosisrate
-    else:
-        INT['ultrasound']['diagnosis_rate'] = 0
-    if flag_int4:
-        if flag_ANC:
-            INT['neo'][
-                'preterm'] = 0.788  # percent reduction in neonatal deaths overall due to 16% reduction in neonatal deaths as a result of preterm labor
-    else:
-        INT['neo']['preterm'] = 1
-
-    INT['ANC']['bs'] = 1 - (1 - INT['ANC']['b0']) ** np.minimum(t, 12)
-    INT['refer']['bs'] = INT['refer']['b0'] * (t - 1)
-
-    if flag_ANC:
-        INT['ANC']['ANC_msepsis']['b'] = np.array(
-            [comp_reduction(4, INT['comp']['msepsis']['inc'], INT['ANC']['inc'], i) for i in
-             (1 - INT['ANC']['bs'] / (INT['ANC']['b0'] * 12))])
-        INT['ANC']['ANC_eclampsia']['b'] = np.array(
-            [comp_reduction(1.41, INT['comp']['eclampsia']['inc'], INT['ANC']['inc'], i) for i in
-             (1 - INT['ANC']['bs'] / (INT['ANC']['b0'] * 12))])
-        INT['ANC']['ANC_rup_uterus']['b'] = np.array(
-            [comp_reduction(6.29, INT['comp']['rup_uterus']['inc'], INT['ANC']['inc'], i) for i in
-             (1 - INT['ANC']['bs'] / (INT['ANC']['b0'] * 12))])
-
-    if flag_ANC2:
-        flag_ANC = 1
-        INT['ANC']['bs'] = INT['ANC']['bs'] * (
-                    INT['ANC']['ANC_PPH']['b'] * INT['ANC']['ANC_msepsis']['b'] * INT['ANC']['ANC_eclampsia']['b'] *
-                    INT['ANC']['ANC_obs_labor']['b'] * INT['ANC']['ANC_rup_uterus']['b'])
-        INT['mort']['b'] = INT['ANC']['ANC_preterm']['b']
+    INT = set_flags(flags)
 
     n_stats_H1 = []
     n_stats_H2 = []
@@ -534,35 +730,40 @@ def run_model(flags):
         INT['refer']['b'] = INT['refer']['bs'][i]
         INT['ANC']['b'] = INT['ANC']['bs'][i]
         INT['trans']['b'] = INT['trans']['bs'][i]
-        scale_CH_est_i = scale_CH_est * (1 - INT['ANC']['b']) * INT['comp']['Anemia_PPH']['b'] * \
-                         INT['comp']['Anemia_APH']['b'] * INT['comp']['PP_PPH']['b']
-        scale_CL_est_i = scale_CL_est * (1 - INT['ANC']['b']) * INT['comp']['Anemia_PPH']['b'] * \
-                         INT['comp']['Anemia_APH']['b']
+        scale_CH_est_i = scale_CH_est * (1 - INT['ANC']['b']) * INT['mcomp']['Anemia_PPH']['b'] * \
+                         INT['mcomp']['Anemia_APH']['b'] * INT['mcomp']['PP_PPH']['b'] * INT['mcomp']['PPH']['b']
+        scale_CL_est_i = scale_CL_est * (1 - INT['ANC']['b']) * INT['mcomp']['Anemia_PPH']['b'] * \
+                         INT['mcomp']['Anemia_APH']['b'] * INT['mcomp']['PPH']['b']
 
         for j in range(SC['n']):  # for each sub county
+            transfer = (1 - SC['Class'][j]) + INT['trans']['b'] * SC['Class'][j]  # p2
             if i > 0:  # skip time 1
                 SC['LB1s'][j][i, :] = f_INT_LB_effect(SC['LB1s'][j][i - 1, :], INT, False, i, Capacity_ratio1[:, j])
                 # compute pushback (overcapacity => reduced CHV effect)
                 SC['LB2s'][j][i, :], Push_back[i, j] = f_INT_LB_effect(SC['LB2s'][j][i - 1, :], INT, True, i,
                                                                        Capacity_ratio2[:, j])
 
-                if flag_sub:
+                if flags[0]:
                     LB_tot_j = np.maximum(SC['LB1s'][j][0, :], 1)  # (zero LB in L5 for sub 2)
                     SDR_multiplier_1_j = SC['LB1s'][j][i, :] / LB_tot_j  # ratio of sums = 1
                     SDR_multiplier_2_j = SC['LB2s'][j][i, :] / LB_tot_j
 
-                    n_MM1s_H, _, _ = f_MM(LB_tot_j, SDR_multiplier_1_j, scale_CH_est_i, n_CHs['refer'][j],
-                                          q_CH_transfer_from, p_MM[1], p_MM_scale_transfer, INT)
-                    n_MM2s_H, _, _ = f_MM(LB_tot_j, SDR_multiplier_2_j, scale_CH_est_i, n_CHs['refer'][j],
-                                          q_CH_transfer_from, p_MM[1], p_MM_scale_transfer, INT)
-                    n_MM1s_L, _, _ = f_MM(LB_tot_j, SDR_multiplier_1_j, scale_CL_est_i, n_CLs['refer'][j],
-                                          q_CL_transfer_from, p_MM[0], p_MM_scale_transfer, INT)
-                    n_MM2s_L, _, _ = f_MM(LB_tot_j, SDR_multiplier_2_j, scale_CL_est_i, n_CLs['refer'][j],
-                                          q_CL_transfer_from, p_MM[0], p_MM_scale_transfer, INT)
+                    n_MM1s_H, n_nM1s_H, _ = f_MM(LB_tot_j, SDR_multiplier_1_j, scale_CH_est_i, n_CHs['refer'][j],
+                                                 q_CH_transfer_from * transfer, p_MM[1], p_MM_scale_transfer, INT)
+                    n_MM2s_H, n_nM2s_H, _ = f_MM(LB_tot_j, SDR_multiplier_2_j, scale_CH_est_i, n_CHs['refer'][j],
+                                                 q_CH_transfer_from * transfer, p_MM[1], p_MM_scale_transfer, INT)
+                    n_MM1s_L, n_nM1s_L, _ = f_MM(LB_tot_j, SDR_multiplier_1_j, scale_CL_est_i, n_CLs['refer'][j],
+                                                 q_CL_transfer_from * transfer, p_MM[0], p_MM_scale_transfer, INT)
+                    n_MM2s_L, n_nM2s_L, _ = f_MM(LB_tot_j, SDR_multiplier_2_j, scale_CL_est_i, n_CLs['refer'][j],
+                                                 q_CL_transfer_from * transfer, p_MM[0], p_MM_scale_transfer, INT)
 
                     n_MMs[i, :, j, 0] = n_MM1s_H + n_MM1s_L
                     n_MMs[i, :, j, 1] = n_MM2s_H + n_MM2s_L
                     p_MMs[i, :, j, :] = n_MMs[i, :, j, :] / LB_tot_j[:, None]
+
+                    n_nMs[i, :, j, 0] = n_nM1s_H + n_nM1s_L
+                    n_nMs[i, :, j, 0] = n_nM2s_H + n_nM2s_L
+                    p_nMs[i, :, j, :] = n_nMs[i, :, j, :] / LB_tot_j[:, None]
 
             Capacity_ratio1[i, j] = np.sum(SC['LB1s'][j][i, 2:4]) / Capacity[j]  # LB/capacity (no pushback)
             Capacity_ratio2[i, j] = np.sum(SC['LB2s'][j][i, 2:4]) / Capacity[j]  # (pushback)
@@ -604,9 +805,9 @@ def run_model(flags):
                               columns=['Complication Transfer Rate', 'Initial Complications at Facilities', 'Referrals',
                                        'Initial Complications Post Referral'])
 
-    pph_H = scale_CH_est / (INT['comp']['PPH']['inc'] * INT['comp']['Anemia_PPH']['b'] * INT['comp']['PP_PPH']['b'] *
+    pph_H = scale_CH_est / (INT['mcomp']['PPH']['inc'] * INT['mcomp']['Anemia_PPH']['b'] * INT['mcomp']['PP_PPH']['b'] *
                             (1 - INT['ANC']['bs'] * (INT['ANC']['ANC_PPH']['b']))[n_months - 1])
-    pph_L = scale_CL_est / (INT['comp']['PPH']['inc'] * INT['comp']['Anemia_PPH']['b'] *
+    pph_L = scale_CL_est / (INT['mcomp']['PPH']['inc'] * INT['mcomp']['Anemia_PPH']['b'] *
                             (1 - INT['ANC']['bs'] * (INT['ANC']['ANC_PPH']['b']))[n_months - 1])
 
     outcomes_dict['Maternal Deaths'] = np.sum(n_MM[i, :, 0])
@@ -617,37 +818,159 @@ def run_model(flags):
         n_MM1_L)) / pph_L
 
     # still working on
-    return n_MM, n_nM, n_stats_H1, n_stats_H2, n_stats_L1, n_stats_L2, outcomes_dict
+    return SC, n_MM, n_nM, n_MMs, n_nMs, n_stats_H1, n_stats_H2, n_stats_L1, n_stats_L2, outcomes_dict
 
-
-flags = [flag_sub, flag_CHV, flag_ANC, flag_ANC2, flag_refer, flag_trans, flag_int1, flag_int2, flag_int3, flag_int4]
-bn_MM, bn_nM, bn_stats_H1, bn_stats_H2, bn_stats_L1, bn_stats_L2, boutcomes = run_model([1,0,0,0,0,0,0,0,0,0]) # always baseline
-n_MM, n_nM, n_stats_H1, n_stats_H2, n_stats_L1, n_stats_L2, outcomes = run_model(flags)                   # intervention, can rename
+flags = [flag_sub, flag_CHV, flag_ANC, flag_ANC2, flag_refer, flag_trans, flag_int1, flag_int2, flag_int3, flag_int4, flag_trans2]
+b_flags = [1,0,0,0,0,0,0,0,0,0,0]
+bSC, bn_MM, bn_nM, bn_nMMs, bn_nMs, bn_stats_H1, bn_stats_H2, bn_stats_L1, bn_stats_L2, boutcomes = run_model(b_flags) # always baseline
+iSC, n_MM, n_nM, n_MMs, n_nMs, n_stats_H1, n_stats_H2, n_stats_L1, n_stats_L2, outcomes = run_model(flags)                       # intervention, can rename                     # intervention, can rename
 
 ###############PLOTING HERE####################
+# Normalize data values to the colormap range
+cmap = plt.get_cmap('viridis')
+data=[0,1,2,3]
+normalize = plt.Normalize(min(data), max(data))
+colors = [cmap(normalize(value)) for value in data]
+labels = ['Home', 'L23', 'L4', 'L5']
+
+if selected_plotA == "Live births":
+    #bSC, bn_MM, bn_nM, bn_MMs, bn_nMs, bn_stats_H1, bn_stats_H2, bn_stats_L1, bn_stats_L2, boutcomes = run_model(b_flags)
+    overall_lbs = np.zeros((n_months,4))
+    for j in range(4):
+        tots=np.zeros((n_months))
+        for i in range(12):
+            tots += bSC['LB2s'][i][:,j]
+        overall_lbs[:,j] = tots
+
+    fig,axes = plt.subplots(1,2,figsize=(12,4))
+    #iSC, n_MM, n_nM, n_MMs, n_nMs, n_stats_H1, n_stats_H2, n_stats_L1, n_stats_L2, outcomes = run_model(flags)
+    overall_lbs_i = np.zeros((n_months,4))
+    for j in range(4):
+        tots=np.zeros((n_months))
+        for i in range(12):
+            tots += iSC['LB2s'][i][:,j]
+        overall_lbs_i[:,j] = tots
+
+    for j in range(4):
+        axes[0].plot(range(n_months), overall_lbs[:,j], color=colors[j])
+        axes[1].plot(range(n_months), overall_lbs_i[:,j], color=colors[j])
+        axes[0].set_title('Baseline')
+        axes[1].set_title('Intervention')
+        # axes[k].set_title(f'{p_title[k]}')
+    for ax in axes:
+        ax.set_xlabel('Time (months)')
+        ax.set_ylabel('Live Births')
+        ax.set_ylim([0,35000])
+
+    plt.suptitle('Live Births')
+    fig.legend([f'{labels[j]}' for j in range(4)])
+    st.pyplot(plt)
+
+
+if selected_plotA == "Neonatal deaths":
+    # categories = ['Asphyxia', 'Sepsis', 'Preterm', 'Other']
+    #
+    # fig, axs = plt.subplots(nrows=4, ncols=3, figsize=(12, 8))
+    # axs = axs.flatten()
+    # for i in range(12):
+    #     asphyxia = np.sum(np.sum(bn_nMs[35, :, :, :], axis=2), axis=0)[i] * INT['mort']['n_asphyxia']
+    #     sepsis = np.sum(np.sum(bn_nMs[35, :, :, :], axis=2), axis=0)[i] * INT['mort']['n_sepsis']
+    #     preterm = np.sum(np.sum(n_nMs[35, :, :, :], axis=2), axis=0)[i] * INT['mort']['n_preterm'] * \
+    #               INT['ncomp']['preterm']['b']
+    #     other = np.sum(np.sum(n_nMs[35, :, :, :], axis=2), axis=0)[i] - asphyxia - sepsis - preterm
+    #     axs[i].bar(categories, [asphyxia, sepsis, preterm, other], color='purple')
+    #     axs[i].set_title(f'{subcounties[i]}')
+    #
+    # plt.ylabel('Deaths')
+    # plt.suptitle('Neonatal deaths by Type')
+    # #plt.tight_layout()
+    # st.pyplot(plt)
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+    save_1 = np.sum(bn_nM, axis=2)
+    save_2 = np.sum(n_nM, axis=2)
+    p_title = ['Baseline', 'Intervention']
+
+    for i in range(2):
+        for j in range(4):
+            if i == 0:
+                axes[i].plot(range(n_months), save_1[:, j], color=colors[j])
+            else:
+                axes[i].plot(range(n_months), save_2[:, j], color=colors[j])
+        # axes[i].set_ylim([0,1000])
+        axes[i].set_xlabel('Time (months)')
+        axes[i].set_ylabel('Deaths')
+        axes[i].set_title(f'{p_title[i]}')
+        axes[i].set_ylim([0, 1500])
+
+    plt.suptitle('Neonatal Mortalities')
+    fig.legend([f'{labels[j]}' for j in range(4)])
+    st.pyplot(plt)
+
+if selected_plotA == "Maternal deaths":
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+    p_title = ['Baseline', 'Intervention']
+    save_3 = np.sum(bn_MM, axis=2)
+    save_4 = np.sum(n_MM, axis=2)
+
+    for i in range(2):
+        for j in range(4):
+            if i == 0:
+                axes[i].plot(range(n_months), save_3[:, j], color=colors[j])
+            else:
+                axes[i].plot(range(n_months), save_4[:, j], color=colors[j])
+        # axes[i].set_ylim([0,1000])
+        # axes[i].set_ylim([0,1000])
+        axes[i].set_xlabel('Time (months)')
+        axes[i].set_ylabel('Deaths')
+        axes[i].set_title(f'{p_title[i]}')
+        axes[i].set_ylim([0, 900])
+
+    plt.suptitle('Maternal Mortalities')
+    fig.legend([f'{labels[j]}' for j in range(4)])
+    st.pyplot(plt)
+
+if selected_plotA == "MMR":
+    tots=[]
+
+    for j in range(n_months):
+        sums=0
+        for key,val in SC['LB2s'].items():
+            sums += np.sum(val[j, 2:4])
+        tots.append(sums)
+    p_l45 = tots/np.sum(LB_tot)
+    MMR = np.sum(np.sum(n_MM, axis=1), axis=1)/np.sum(LB_tot)
+    # Plotting the bar graph
+    plt.bar(range(n_months), p_l45, color='darkblue', label='Bar Graph')
+
+    # Plotting the line graph on top
+    plt.plot(range(n_months), MMR*50, marker='o', color='orange', label='Line Graph')
+    plt.xlabel('Months')
+    plt.ylabel('Percent')
+    plt.title('Trends in Percent Live Births at L4/5 and MMR')
+    plt.legend(['MMR rate, scaled by 50', 'Percent live births at L4/5'])
+
+    st.pyplot(plt)
 
 if selected_plotA == "DALYs":
     categories = list(outcomes.keys())
     values1 = list(boutcomes.values())
     values2 = list(outcomes.values())
 
-    fig, ax = plt.subplots(figsize=(12, 4))
     bar_width = 0.35
-    bar_positions1 = np.arange(len(categories))
-    bar_positions2 = bar_positions1 + bar_width
 
-    # Create side-by-side bar graphs
-    ax.bar(bar_positions1, values1, width=bar_width, label='Baseline', color='blue')
-    ax.bar(bar_positions2, values2, width=bar_width, label='With Intervention', color='orange')
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+    for ax in axes:
+        ax.set_ylim([0, 8000])
 
-    # Add labels and title
-    ax.set_xlabel('Morbidities and Mortalities')
-    ax.set_ylabel('DALYs')
-    ax.set_title('DALYs by Severe Health Outcomes')
-    ax.set_xticks(bar_positions1 + bar_width / 2, categories)  # Set x-axis ticks in the middle of the grouped bars
-    ax.set_xticklabels(categories)
-    ax.legend()
-
+    axes[0].bar(categories, values1, width=bar_width, label='Baseline', color='blue')
+    axes[0].set_xlabel('Morbidities and Mortalities')
+    axes[1].set_ylabel('DALYs')
+    axes[0].set_title('Baseline')
+    axes[1].bar(categories, values2, width=bar_width, label='Intervention', color='orange')
+    axes[1].set_xlabel('Morbidities and Mortalities')
+    axes[1].set_ylabel('DALYs')
+    axes[1].set_title('Intervention')
+    plt.suptitle('DALYs by Severe Health Outcomes')
     st.pyplot(fig)
 
 bno_push_L = np.concatenate(bn_stats_L1['Initial Complications Post Referral'].to_numpy()).reshape((n_months, 4))
@@ -671,57 +994,69 @@ def get_comp_freq(scale_high, scale_low, push0_L, push0_H):
     return comp_freq
 
 
-def get_ce(boutcomes, outcomes):
+def get_ce(boutcomes, bn_stats_H1, bn_stats_H2, bn_stats_L1, bn_stats_L2, outcomes, flags):
     """get cost per DALY averted"""
     cost = 0
     total = 0
     for x, y in zip(boutcomes.values(), outcomes.values()):
         total += (x - y)
 
-    scale_high = (scale_CH_est / (INT['comp']['APH']['inc'] * INT['comp']['Anemia_APH']['b']))
-    scale_low = (scale_CH_est / (INT['comp']['APH']['inc'] * INT['comp']['Anemia_APH']['b']))
-    scale_high0 = (scale_CH_est / (
-                INT['comp']['PPH']['inc'] * INT['comp']['Anemia_PPH']['b'] * INT['comp']['PP_PPH']['b'] *
-                (1 - INT['ANC']['bs'] * (INT['ANC']['ANC_PPH']['b']))[0]))
-    scale_high1 = (scale_CH_est / (
-                INT['comp']['PPH']['inc'] * INT['comp']['Anemia_PPH']['b'] * INT['comp']['PP_PPH']['b'] *
+    INT = set_flags(flags)
+
+    pph_effect_end_H = (scale_CH_est / (
+                INT['mcomp']['PPH']['inc'] * INT['mcomp']['Anemia_PPH']['b'] * INT['mcomp']['PP_PPH']['b'] *
                 (1 - INT['ANC']['bs'] * (INT['ANC']['ANC_PPH']['b']))[n_months - 1]))
-    scale_low0 = (scale_CL_est / (INT['comp']['PPH']['inc'] * INT['comp']['Anemia_PPH']['b'] *
-                                  (1 - INT['ANC']['bs'] * (INT['ANC']['ANC_PPH']['b']))[0]))
-    scale_low1 = (scale_CL_est / (INT['comp']['PPH']['inc'] * INT['comp']['Anemia_PPH']['b'] *
-                                  (1 - INT['ANC']['bs'] * (INT['ANC']['ANC_PPH']['b']))[n_months - 1]))
+    pph_effect_end_L = (scale_CL_est / (INT['mcomp']['PPH']['inc'] * INT['mcomp']['Anemia_PPH']['b'] *
+                                        (1 - INT['ANC']['bs'] * (INT['ANC']['ANC_PPH']['b']))[n_months - 1]))
 
-    if flag_int1:
-        comps = sum(
-            get_comp_freq(scale_high, scale_low, push_L[n_months - 1, :], push_H[n_months - 1, :]) + get_comp_freq(
-                scale_high1, scale_low1, push_L[n_months - 1, :], push_H[n_months - 1, :]))
+    aph_effect_end = (scale_CH_est / (INT['mcomp']['APH']['inc'] * INT['mcomp']['Anemia_APH']['b']))
+    no_effect = (scale_CH_est / INT['mcomp']['APH']['inc'])
+
+    bno_push_L = np.concatenate(bn_stats_L1['Initial Complications Post Referral'].to_numpy()).reshape((n_months, 4))
+    bno_push_H = np.concatenate(bn_stats_H1['Initial Complications Post Referral'].to_numpy()).reshape((n_months, 4))
+
+    bpush_L = np.concatenate(bn_stats_L2['Initial Complications Post Referral'].to_numpy()).reshape((n_months, 4))
+    bpush_H = np.concatenate(bn_stats_L1['Initial Complications Post Referral'].to_numpy()).reshape((n_months, 4))
+    bpush = bpush_L + bpush_H
+
+    if flags[6]:
+        comps = np.sum(
+            bpush_L[n_months - 1, :] / pph_effect_end_L + bpush_H[n_months - 1, :] / pph_effect_end_H + bpush[
+                                                                                                        n_months - 1,
+                                                                                                        :] / aph_effect_end)
         cost += comps
-    if flag_int3:
-        cost += 2000 * np.sum(LB_tot) / 100
-    if flag_int4:
-        cost += 53.68*np.sum(LB_tot)  # consider, does this actually happen across all facility levels (??) or only the mothers who receive ANC
-
-    # if INT1
-    # if INT2
-    # if INT3
-    # if INT4
+    if flags[8]:
+        cost += 2000 * 232  # number of L2/3 facilities with provided ANC
+    if flags[9]:
+        cost += 53.68 * np.sum(
+            LB_tot)  # consider, does this actually happen across all facility levels (??) or only the mothers who receive
 
     return cost / total
 
-get_ce(boutcomes, outcomes)
+if selected_plotA == "Cost effectiveness":
+    _, _, _, _, _, bn_stats_H1, bn_stats_H2, bn_stats_L1, bn_stats_L2, boutcomes = run_model(
+        b_flags)
+    _, _, _, _, _, _, _, _, _, outcomes1 = run_model([1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0])  # Obstetric drape
+    _, _, _, _, _, _, _, _, _, outcomes3 = run_model([1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0])  # Ultrasound
+    _, _, _, _, _, _, _, _, _, outcomes4 = run_model([1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0])  # antenatal corticosteroids
+    _, _, _, _, _, _, _, _, _, outcomesc = run_model([1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0])  # combined
+    cost_effect = np.array([get_ce(boutcomes, bn_stats_H1, bn_stats_H2, bn_stats_L1, bn_stats_L2, outcomes1,
+                                   [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0]),
+                            get_ce(boutcomes, bn_stats_H1, bn_stats_H2, bn_stats_L1, bn_stats_L2, outcomes3,
+                                   [1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0]),
+                            get_ce(boutcomes, bn_stats_H1, bn_stats_H2, bn_stats_L1, bn_stats_L2, outcomes4,
+                                   [1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0]),
+                            get_ce(boutcomes, bn_stats_H1, bn_stats_H2, bn_stats_L1, bn_stats_L2, outcomesc,
+                                   [1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0])])
 
-scale_high = (scale_CH_est / (INT['comp']['APH']['inc'] * INT['comp']['Anemia_APH']['b']))
-scale_low =  (scale_CH_est / (INT['comp']['APH']['inc'] * INT['comp']['Anemia_APH']['b']))
-# gets the pushback final values for APH at the first time point
-diff_APH = get_comp_freq(scale_high, scale_low, push_L[0,:], push_H[0,:]) - get_comp_freq(scale_high, scale_low, push_L[n_months-1,:], push_H[n_months-1,:])
+    plt.bar(['Obstetric Drape', 'Ultrasound', 'Antenatal Drugs', 'Combined'], cost_effect, color='orange')
+    plt.xlabel('Interventions')
+    plt.ylabel('USD per DALYs averted')
+    plt.title('Cost-effectiveness of interventions')
+    for i, value in enumerate(cost_effect):
+        plt.text(i, value + 0.5, str(round(value)), ha='center', va='bottom')
 
-scale_high0 = (scale_CH_est / (INT['comp']['PPH']['inc'] * INT['comp']['Anemia_PPH']['b'] *  INT['comp']['PP_PPH']['b'] * (1 - INT['ANC']['bs'] * (INT['ANC']['ANC_PPH']['b']))[0]))
-scale_high1 = (scale_CH_est / (INT['comp']['PPH']['inc'] * INT['comp']['Anemia_PPH']['b'] *  INT['comp']['PP_PPH']['b'] * (1 - INT['ANC']['bs'] * (INT['ANC']['ANC_PPH']['b']))[n_months-1]))
-scale_low0 = (scale_CL_est / (INT['comp']['PPH']['inc'] * INT['comp']['Anemia_PPH']['b']  * (1 - INT['ANC']['bs'] * (INT['ANC']['ANC_PPH']['b']))[0]))
-scale_low1 = (scale_CL_est / (INT['comp']['PPH']['inc'] * INT['comp']['Anemia_PPH']['b']  * (1 - INT['ANC']['bs'] * (INT['ANC']['ANC_PPH']['b']))[n_months-1]))
-diff_PPH = get_comp_freq(scale_high0, scale_low0, push_L[0,:], push_H[0,:]) - get_comp_freq(scale_high1, scale_low1, push_L[n_months-1,:], push_H[n_months-1,:])
-
-sum(get_comp_freq(scale_high, scale_low, push_L[n_months-1,:], push_H[n_months-1,:]) + get_comp_freq(scale_high1, scale_low1, push_L[n_months-1,:], push_H[n_months-1,:]))
+    st.pyplot(plt)
 
 ### referrals related
 brno_push = np.concatenate(bn_stats_L1['Referrals'].to_numpy()).reshape((n_months, 4)) + np.concatenate(bn_stats_H1['Referrals'].to_numpy()).reshape((n_months, 4))
@@ -729,40 +1064,6 @@ brpush = np.concatenate(bn_stats_L2['Referrals'].to_numpy()).reshape((n_months, 
 
 rno_push = np.concatenate(n_stats_L1['Referrals'].to_numpy()).reshape((n_months, 4)) + np.concatenate(n_stats_H1['Referrals'].to_numpy()).reshape((n_months, 4))
 rpush = np.concatenate(n_stats_L2['Referrals'].to_numpy()).reshape((n_months, 4)) + np.concatenate(n_stats_L1['Referrals'].to_numpy()).reshape((n_months, 4))
-
-to_plotbeg = np.vstack((brpush[0,:], rpush[0,:]))
-to_plotend = np.vstack((brpush[n_months-1,:], rpush[n_months-1,:]))
-
-if selected_plotA == "Live births":
-    fig, axes = plt.subplots(1,2,figsize = (12,4))
-    for i in range(2):
-        categories = ['Home', 'L2/3', 'L4', 'L5']
-        if i==1:
-            values1 = to_plotend[0,:]
-            values2 = to_plotend[1,:]
-        else:
-            values1 = to_plotbeg[0,:]
-            values2 = to_plotbeg[1,:]
-
-        # Set the width of the bars
-        bar_width = 0.35
-
-        # Set the positions of the bars on the x-axis
-        bar_positions1 = np.arange(len(categories))
-        bar_positions2 = bar_positions1 + bar_width
-
-    # Create the bar graph
-        axes[i].bar(bar_positions1, values1, width=bar_width, label='Group 1')
-        axes[i].bar(bar_positions2, values2, width=bar_width, label='Group 2')
-        axes[i].axhline(0, color='black', linestyle='--', linewidth=1)
-        axes[i].set_xticks(bar_positions1 + bar_width / 2, categories)
-        if i ==1:
-            axes[i].set_title('Change of LBs due to Referrals (32 months)')
-        else:
-            axes[i].set_title('Change of LBs due to Referrals (0 months)')
-    #plt.tight_layout()
-    plt.legend([' ', 'Baseline', 'With Intervention'])
-    st.pyplot(fig)
 
 # get complications post referral for baseline
 bno_push_L = np.concatenate(bn_stats_L1['Initial Complications Post Referral'].to_numpy()).reshape((n_months, 4))
@@ -777,77 +1078,86 @@ no_push_H =  np.concatenate(n_stats_H1['Initial Complications Post Referral'].to
 push_L = np.concatenate(n_stats_L2['Initial Complications Post Referral'].to_numpy()).reshape((n_months, 4))
 push_H = np.concatenate(n_stats_L1['Initial Complications Post Referral'].to_numpy()).reshape((n_months, 4))
 
-### APH Hemorrhage ###
-bpush = bpush_L + bpush_H
-push = push_L + push_H
-
-aph_effect_beg = (scale_CH_est / (INT['comp']['APH']['inc'] * INT['comp']['Anemia_APH']['b']))
-aph_effect_end = (scale_CH_est / (INT['comp']['APH']['inc'] * INT['comp']['Anemia_APH']['b']))
-no_effect = (scale_CH_est / INT['comp']['APH']['inc'])
-
-to_plotbeg = np.vstack((push[0,:] / no_effect, push[0,:] / aph_effect_beg))
-to_plotend = np.vstack((push[n_months-1,:] / no_effect, push[n_months-1,:] / aph_effect_end))
-
-if selected_plotA == "APH complications":
-    fig, axes = plt.subplots(1,2,figsize = (12,4))
-    for i in range(2):
-        categories = ['Home', 'L2/3', 'L4', 'L5']
-        if i==1:
-            values1 = np.clip(list(to_plotend[0,:]), 0, None)
-            values2 = np.clip(list(to_plotend[1,:]), 0, None)
-            # values1 = to_plotend[0,:]
-            # values2 = to_plotend[1,:]
-        else:
-            values1 = np.clip(list(to_plotbeg[0,:]), 0, None)
-            values2 = np.clip(list(to_plotbeg[1,:]), 0, None)
-            # values1 = to_plotbeg[0,:]
-            # values2 = to_plotbeg[1,:]
-
-        # Set the width of the bars
-        bar_width = 0.35
-
-        # Set the positions of the bars on the x-axis
-        bar_positions1 = np.arange(len(categories))
-        bar_positions2 = bar_positions1 + bar_width
-
-    # Create the bar graph
-        axes[i].bar(bar_positions1, values1, width=bar_width, label='Group 1')
-        axes[i].bar(bar_positions2, values2, width=bar_width, label='Group 2')
-        axes[i].set_xticks(bar_positions1 + bar_width / 2, categories)
-        if i ==1:
-            axes[i].set_title('APH Complications by Facility Level (32 months)')
-        else:
-            axes[i].set_title('APH Complications by Facility Level (0 months)')
-
-    #plt.tight_layout()
-    plt.legend(['Baseline', 'With Intervention'])
-    st.pyplot(fig)
+# ### APH Hemorrhage ###
+# bpush = bpush_L + bpush_H
+# push = push_L + push_H
+#
+# aph_effect_beg = (scale_CH_est / (INT['comp']['APH']['inc'] * INT['comp']['Anemia_APH']['b']))
+# aph_effect_end = (scale_CH_est / (INT['comp']['APH']['inc'] * INT['comp']['Anemia_APH']['b']))
+# no_effect = (scale_CH_est / INT['comp']['APH']['inc'])
+#
+# to_plotbeg = np.vstack((push[0,:] / no_effect, push[0,:] / aph_effect_beg))
+# to_plotend = np.vstack((push[n_months-1,:] / no_effect, push[n_months-1,:] / aph_effect_end))
+#
+# if selected_plotA == "APH complications":
+#     fig, axes = plt.subplots(1,2,figsize = (12,4))
+#     for i in range(2):
+#         categories = ['Home', 'L2/3', 'L4', 'L5']
+#         if i==1:
+#             values1 = np.clip(list(to_plotend[0,:]), 0, None)
+#             values2 = np.clip(list(to_plotend[1,:]), 0, None)
+#             # values1 = to_plotend[0,:]
+#             # values2 = to_plotend[1,:]
+#         else:
+#             values1 = np.clip(list(to_plotbeg[0,:]), 0, None)
+#             values2 = np.clip(list(to_plotbeg[1,:]), 0, None)
+#             # values1 = to_plotbeg[0,:]
+#             # values2 = to_plotbeg[1,:]
+#
+#         # Set the width of the bars
+#         bar_width = 0.35
+#
+#         # Set the positions of the bars on the x-axis
+#         bar_positions1 = np.arange(len(categories))
+#         bar_positions2 = bar_positions1 + bar_width
+#
+#     # Create the bar graph
+#         axes[i].bar(bar_positions1, values1, width=bar_width, label='Group 1')
+#         axes[i].bar(bar_positions2, values2, width=bar_width, label='Group 2')
+#         axes[i].set_xticks(bar_positions1 + bar_width / 2, categories)
+#         if i ==1:
+#             axes[i].set_title('APH Complications by Facility Level (32 months)')
+#         else:
+#             axes[i].set_title('APH Complications by Facility Level (0 months)')
+#
+#     #plt.tight_layout()
+#     plt.legend(['Baseline', 'With Intervention'])
+#     st.pyplot(fig)
 
 ### PPH Hemorrhage ###
-pph_effect_beg_H = (scale_CH_est / (INT['comp']['PPH']['inc'] * INT['comp']['Anemia_PPH']['b'] *  INT['comp']['PP_PPH']['b'] * (1 - INT['ANC']['bs'] * (INT['ANC']['ANC_PPH']['b']))[0]))
-pph_effect_end_H = (scale_CH_est / (INT['comp']['PPH']['inc'] * INT['comp']['Anemia_PPH']['b'] *  INT['comp']['PP_PPH']['b'] * (1 - INT['ANC']['bs'] * (INT['ANC']['ANC_PPH']['b']))[n_months-1]))
-pph_effect_beg_L = (scale_CL_est / (INT['comp']['PPH']['inc'] * INT['comp']['Anemia_PPH']['b']  * (1 - INT['ANC']['bs'] * (INT['ANC']['ANC_PPH']['b']))[0]))
-pph_effect_end_L = (scale_CL_est / (INT['comp']['PPH']['inc'] * INT['comp']['Anemia_PPH']['b']  * (1 - INT['ANC']['bs'] * (INT['ANC']['ANC_PPH']['b']))[n_months-1]))
-
-no_effect = (scale_CH_est / INT['comp']['PPH']['inc'])
-
-to_plotbeg = np.vstack((push[0,:] / no_effect, push_L[0,:]/pph_effect_beg_L + push_H[0,:]/pph_effect_beg_H))
-to_plotend = np.vstack((push[n_months-1,:] / no_effect, push_L[n_months-1,:]/pph_effect_beg_L + push_H[n_months-1,:]/pph_effect_beg_H))
-
 if selected_plotA == "PPH complications":
-    fig, axes = plt.subplots(1,2,figsize = (12,4))
+    ### PPH Hemorrhage ###
+    pph_effect_beg_H = (scale_CH_est / (
+                INT['comp']['PPH']['inc'] * INT['comp']['Anemia_PPH']['b'] * INT['comp']['PP_PPH']['b'] *
+                (1 - INT['ANC']['bs'] * (INT['ANC']['ANC_PPH']['b']))[0]))
+    pph_effect_end_H = (scale_CH_est / (
+                INT['comp']['PPH']['inc'] * INT['comp']['Anemia_PPH']['b'] * INT['comp']['PP_PPH']['b'] *
+                (1 - INT['ANC']['bs'] * (INT['ANC']['ANC_PPH']['b']))[n_months - 1]))
+    pph_effect_beg_L = (scale_CL_est / (INT['comp']['PPH']['inc'] * INT['comp']['Anemia_PPH']['b'] *
+                                        (1 - INT['ANC']['bs'] * (INT['ANC']['ANC_PPH']['b']))[0]))
+    pph_effect_end_L = (scale_CL_est / (INT['comp']['PPH']['inc'] * INT['comp']['Anemia_PPH']['b'] *
+                                        (1 - INT['ANC']['bs'] * (INT['ANC']['ANC_PPH']['b']))[n_months - 1]))
+
+    no_effect = (scale_CH_est / INT['comp']['PPH']['inc'])
+
+    to_plotbeg = np.vstack(
+        (bpush[0, :] / no_effect, bpush_L[0, :] / pph_effect_beg_L + bpush_H[0, :] / pph_effect_beg_H))
+    to_plotend = np.vstack((bpush[n_months - 1, :] / no_effect,
+                            bpush_L[n_months - 1, :] / pph_effect_end_L + bpush_H[n_months - 1, :] / pph_effect_end_H))
+
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4))
     for i in range(2):
         categories = ['Home', 'L2/3', 'L4', 'L5']
-        if i==1:
-            values1 = np.clip(list(to_plotend[0,:]), 0, None)
-            values2 = np.clip(list(to_plotend[1,:]), 0, None)
-            # values1 = to_plotend[0,:]
-            # values2 = to_plotend[1,:]
+        if i == 1:
+            # values1 = np.clip(list(to_plotend[0,:]), 0, None)
+            # values2 = np.clip(list(to_plotend[1,:]), 0, None)
+            values1 = to_plotend[0, :]
+            values2 = to_plotend[1, :]
         else:
-            values1 = np.clip(list(to_plotbeg[0,:]), 0, None)
-            values2 = np.clip(list(to_plotbeg[1,:]), 0, None)
-            # values1 = to_plotbeg[0,:]
-            # values2 = to_plotbeg[1,:]
+            # values1 = np.clip(list(to_plotbeg[0,:]), 0, None)
+            # values2 = np.clip(list(to_plotbeg[1,:]), 0, None)
+            values1 = to_plotbeg[0, :]
+            values2 = to_plotbeg[1, :]
 
         # Set the width of the bars
         bar_width = 0.35
@@ -856,27 +1166,30 @@ if selected_plotA == "PPH complications":
         bar_positions1 = np.arange(len(categories))
         bar_positions2 = bar_positions1 + bar_width
 
-    # Create the bar graph
+        # Create the bar graph
         axes[i].bar(bar_positions1, values1, width=bar_width, label='Group 1')
         axes[i].bar(bar_positions2, values2, width=bar_width, label='Group 2')
         axes[i].set_xticks(bar_positions1 + bar_width / 2, categories)
-        if i ==1:
-            axes[i].set_title('PPH Complications by Facility Level (32 months)')
+        if i == 1:
+            axes[i].set_title(f'PPH Complications by Facility Level - {n_months} months')
         else:
-            axes[i].set_title('PPH Complications by Facility Level (0 months)')
+            axes[i].set_title('PPH Complications by Facility Level - 1 month')
 
     #plt.tight_layout()
     plt.legend(['Baseline', 'With Intervention'])
     st.pyplot(fig)
 
-no_push = np.concatenate(n_stats_L1['Initial Complications Post Referral'].to_numpy()).reshape((n_months, 4)) + np.concatenate(n_stats_H1['Initial Complications Post Referral'].to_numpy()).reshape((n_months, 4))
-push = np.concatenate(n_stats_L2['Initial Complications Post Referral'].to_numpy()).reshape((n_months, 4)) + np.concatenate(n_stats_L1['Initial Complications Post Referral'].to_numpy()).reshape((n_months, 4))
-
 if selected_plotA == "Effects of CHV pushback":
-    fig, (ax1, ax2)= plt.subplots(1,2, figsize=(12, 4))
+    no_push = np.concatenate(n_stats_L1['Initial Complications Post Referral'].to_numpy()).reshape(
+        (n_months, 4)) + np.concatenate(n_stats_H1['Initial Complications Post Referral'].to_numpy()).reshape(
+        (n_months, 4))
+    push = np.concatenate(n_stats_L2['Initial Complications Post Referral'].to_numpy()).reshape(
+        (n_months, 4)) + np.concatenate(n_stats_L1['Initial Complications Post Referral'].to_numpy()).reshape(
+        (n_months, 4))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
     for j in range(4):
-            ax1.plot(range(n_months), no_push)
-            ax2.plot(range(n_months), push)
+        ax1.plot(range(n_months), no_push)
+        ax2.plot(range(n_months), push)
 
     plt.suptitle('Complications facility level - Pushback')
     ax1.set_xlabel('Time')
@@ -911,26 +1224,6 @@ if selected_plotA == "Effects of CHV pushback":
     #plt.show()
     st.pyplot(fig)
 
-if flag_sub and selected_plotB == "Maternal deaths":
-    fig, axes = plt.subplots(4, 3, figsize=(12, 8))
-
-    # Loop through the subplots and plot the data
-    j=0
-    for x in range(4):
-        for y in range(3):
-            ax = axes[x, y]
-            for i in range(4):
-                ax.plot(range(n_months-1), n_MMs[1:, i, j, 0])
-                ax.set_title(f'SC {j}')
-                ax.set_xlabel('Months')
-                ax.set_ylabel('Deaths')
-            j+=1
-
-    plt.suptitle('Maternal deaths by subcounty and facility level')
-    #plt.tight_layout()
-    #plt.show()
-    st.pyplot(fig)
-
 if selected_plotA == "Effects of CHV pushback":
     num_rows, num_cols = 1, 2
 
@@ -954,35 +1247,293 @@ if selected_plotA == "Effects of CHV pushback":
     #plt.show()
     st.pyplot(fig)
 
-if flag_sub and selected_plotB == "Live births":
+if selected_plotB == "Maternal deaths":
+    st.markdown("<h3 style='text-align: left;'>Maternal deaths by subcounty and facility level</h3>",
+                unsafe_allow_html=True)
+    options = ['Home', 'L2/3', 'L4', 'L5']
+    selected_options = st.multiselect('Select levels', options)
+
     num_rows, num_cols = 4, 3
+    plot_columns = [st.columns(num_cols) for _ in range(num_rows)]
+    for j in range(12):
+        df = pd.DataFrame(np.sum(n_MMs[1:, :, :, :], axis = 3)[:,:,j])
+        df['month'] = range(1, 36)
+        df = df.melt(id_vars=['month'], var_name='level', value_name='value')
+        # Mapping dictionary
+        mapping = {
+            0: 'Home',
+            1: 'L2/3',
+            2: 'L4',
+            3: 'L5'
+        }
+        # Replace values in the 'Levels' column
+        df['level'] = df['level'].replace(mapping)
+        df = df[df['level'].isin(selected_options)]
+        chart = (
+            alt.Chart(
+                data=df,
+                title=f'{subcounties[j]}',
+            )
+            .mark_line()
+            .encode(
+                x=alt.X("month", axis=alt.Axis(title="Month")),
+                y=alt.Y("value", axis=alt.Axis(title="# of Deaths")),
+                color=alt.Color("level:N").title("Level"),
+            ).properties(
+                width=300,
+                height=250
+            )
+        )
 
-    # Create a grid of subplots
-    fig, axes = plt.subplots(num_rows, num_cols, figsize=(12, 8))
+        chart = chart.properties(
+        ).configure_title(
+            anchor='middle'
+        )
 
-    # Iterate over j from 0 to 11
-    for j in range(num_rows * num_cols):
-        # Replace 7 with j to access different LB1s
-        y_values = SC['LB1s'][j]
-        y_values = y_values.T
+        row = j // num_cols
+        col = j % num_cols
 
-        # Calculate the row and column indices for the current subplot
-        row, col = divmod(j, num_cols)
+        with plot_columns[row][col]:
+            st.altair_chart(chart)
 
-        # Plot the data in the current subplot
-        for i in range(4):
-            axes[row, col].plot(range(n_months), y_values[i])
+if selected_plotB == "Neonatal deaths":
+    # arr = np.sum(n_nMs[1:, :, :, :], axis=3)
+    # fig, axs = plt.subplots(nrows=4, ncols=3, figsize=(12, 8))
+    # axs = axs.flatten()
+    # # Iterate over each row in the array
+    # for i in range(arr.shape[2]):
+    #     # Iterate over each subplot in the row
+    #     for j in range(arr.shape[1]):
+    #         # Plot the line for each subplot
+    #         if j > 0:
+    #             axs[i].plot(range(35), arr[:, j, i], label=f'Line {j + 1}')
+    #
+    #     # Set subplot title and labels
+    #     axs[i].set_title(f'{subcounties[i]}')
+    #     axs[i].set_xlabel('Months')
+    #     axs[i].set_ylabel('Deaths')
+    #
+    # plt.suptitle('Neonatal Mortalities by Subcounty, excluding home')
+    # st.pyplot(fig)
+    # # Adjust layout to prevent clipping of titles
+    # #plt.tight_layout()
+    # # Show the plot
+    # #plt.show()
+    st.markdown("<h3 style='text-align: left;'>Neonatal deaths by subcounty and facility level</h3>",
+                unsafe_allow_html=True)
+    options = ['Home', 'L2/3', 'L4', 'L5']
+    selected_options = st.multiselect('Select levels', options)
 
-        axes[row, col].set_title(f'Subcounty {j + 1}')
-        axes[row, col].set_xlabel('Months')
-        axes[row, col].set_ylabel('# of Births')
+    num_rows, num_cols = 4, 3
+    plot_columns = [st.columns(num_cols) for _ in range(num_rows)]
+    for j in range(12):
+        df = pd.DataFrame(np.sum(n_nMs[1:, :, :, :], axis = 3)[:,:,j])
+        df['month'] = range(1, 36)
+        df = df.melt(id_vars=['month'], var_name='level', value_name='value')
+        # Mapping dictionary
+        mapping = {
+            0: 'Home',
+            1: 'L2/3',
+            2: 'L4',
+            3: 'L5'
+        }
+        # Replace values in the 'Levels' column
+        df['level'] = df['level'].replace(mapping)
+        df = df[df['level'].isin(selected_options)]
+        chart = (
+            alt.Chart(
+                data=df,
+                title=f'{subcounties[j]}',
+            )
+            .mark_line()
+            .encode(
+                x=alt.X("month", axis=alt.Axis(title="Month")),
+                y=alt.Y("value", axis=alt.Axis(title="# of Deaths")),
+                color=alt.Color("level:N").title("Level"),
+            ).properties(
+                width=300,
+                height=250
+            )
+        )
 
-    fig.suptitle('Live births by subcounty and facility level')
-    #plt.tight_layout()
-    #plt.show()
-    st.pyplot(fig)
+        chart = chart.properties(
+        ).configure_title(
+            anchor='middle'
+        )
 
-##############PLOT in Streamlit version##################
+        row = j // num_cols
+        col = j % num_cols
+
+        with plot_columns[row][col]:
+            st.altair_chart(chart)
+
+if selected_plotB == "Live births":
+    #Streamlit Version
+    st.markdown("<h3 style='text-align: center;'>Live births by subcounty and facility level</h3>",
+                unsafe_allow_html=True)
+    options = ['Home', 'L2/3', 'L4', 'L5']
+    selected_options = st.multiselect('Select levels', options)
+
+    num_rows, num_cols = 4, 3
+    plot_columns = [st.columns(num_cols) for _ in range(num_rows)]
+
+    for j in range(12):
+        df = pd.DataFrame(iSC['LB1s'][j])
+        df['month'] = range(1, 37)
+        df = df.melt(id_vars=['month'], var_name='level', value_name='value')
+        # Mapping dictionary
+        mapping = {
+            0: 'Home',
+            1: 'L2/3',
+            2: 'L4',
+            3: 'L5'
+        }
+        # Replace values in the 'Levels' column
+        df['level'] = df['level'].replace(mapping)
+        # Filter the DataFrame based on selected options
+        df = df[df['level'].isin(selected_options)]
+
+        chart = (
+            alt.Chart(
+                data=df,
+                title=f'{subcounties[j]}',
+            )
+            .mark_line()
+            .encode(
+                x=alt.X("month", axis=alt.Axis(title="Month")),
+                y=alt.Y("value", axis=alt.Axis(title="# of Births")),
+                color=alt.Color("level:N").title("Level"),
+            ).properties(
+            width=300,
+            height=250
+            )
+        )
+
+        chart = chart.properties(
+        ).configure_title(
+        anchor='middle'
+        )
+
+        row = j // num_cols
+        col = j % num_cols
+
+        with plot_columns[row][col]:
+            st.altair_chart(chart)
+    # num_rows, num_cols = 4, 3
+    #
+    # # Create a grid of subplots
+    # fig, axes = plt.subplots(num_rows, num_cols, figsize=(12, 8))
+    #
+    # # Iterate over j from 0 to 11
+    # for j in range(num_rows * num_cols):
+    #     # Replace 7 with j to access different LB1s
+    #     y_values = SC['LB1s'][j]
+    #     y_values = y_values.T
+    #
+    #     # Calculate the row and column indices for the current subplot
+    #     row, col = divmod(j, num_cols)
+    #
+    #     # Plot the data in the current subplot
+    #     for i in range(4):
+    #         axes[row, col].plot(range(n_months), y_values[i])
+    #
+    #     axes[row, col].set_title(f'Subcounty {j + 1}')
+    #     axes[row, col].set_xlabel('Months')
+    #     axes[row, col].set_ylabel('# of Births')
+    #
+    # fig.suptitle('Live births by subcounty and facility level')
+    # #plt.tight_layout()
+    # #plt.show()
+    # st.pyplot(fig)
+
+if select_level == "Subcounty in Map":
+    shapefile_path2 = 'ke_subcounty.shp'
+    data2 = gpd.read_file(shapefile_path2)
+    data2 = data2.loc[data2['county'] == 'Kakamega',]
+    data2['subcounty'] = data2['subcounty'].str.split().str[0]
+    LB_matrix = np.zeros((12, 4))
+    MM_matrix = np.zeros((12, 4))
+    NM_matrix = np.zeros((12, 4))
+    MMR_matrix = np.zeros((12, 4))
+    NMR_matrix = np.zeros((12, 4))
+    for i in range(12):
+        LB_matrix[i, :] = SC['LB1s'][i][35, :]
+        MM_matrix[i, :] = np.sum(n_MMs, axis=3)[35,:,i]
+        NM_matrix[i, :] = np.sum(n_nMs, axis=3)[35,:,i]
+        for j in range(4):
+            MMR_matrix[i, j] = MM_matrix[i, j] / LB_matrix[i, j] * 1000
+            NMR_matrix[i, j] = NM_matrix[i, j] / LB_matrix[i, j] * 1000
+
+    MMR_matrix[np.isinf(MMR_matrix)] = 0
+    NMR_matrix[np.isinf(NMR_matrix)] = 0
+    df_MMR = pd.DataFrame(MMR_matrix)
+    df_NMR = pd.DataFrame(NMR_matrix)
+    df_LB = pd.DataFrame(LB_matrix)
+    new_column_names_MMR = ['MMR_Home', 'MMR_L23', "MMR_L4", "MMR_L5"]
+    new_column_names_NMR = ['NMR_Home', 'NMR_L23', "NMR_L4", "NMR_L5"]
+    new_column_names_LB = ['LB_Home', 'LB_L23', "LB_L4", "LB_L5"]
+    df_MMR.columns = new_column_names_MMR
+    df_NMR.columns = new_column_names_NMR
+    df_LB.columns = new_column_names_LB
+    df_MMR['Sum_MMR'] = df_MMR.iloc[:, 0:4].sum(axis=1)
+    df_NMR['Sum_NMR'] = df_NMR.iloc[:, 0:4].sum(axis=1)
+    df_LB['Sum_LB'] = df_LB.iloc[:, 0:4].sum(axis=1)
+    df_MMR['subcounty'] = subcounties
+    df_NMR['subcounty'] = subcounties
+    df_LB['subcounty'] = subcounties
+    data2 = data2.merge(df_MMR, left_on='subcounty', right_on='subcounty')
+    data2 = data2.merge(df_NMR, left_on='subcounty', right_on='subcounty')
+    data2 = data2.merge(df_LB, left_on='subcounty', right_on='subcounty')
+    if selected_plotC == "MMR":
+        fig = px.choropleth_mapbox(data2,
+                               geojson=data2.geometry,
+                               locations=data2.index,
+                               mapbox_style="open-street-map",
+                               color=data2.Sum_MMR,
+                               center={'lon': 34.785511, 'lat': 0.430930},
+                               zoom=8,
+                               color_continuous_scale="ylgnbu",  # You can choose any color scale you prefer
+                               range_color=(20, 50)  # Define the range of colors
+                                   )
+
+        st.markdown("<h3 style='text-align: left;'>Maternal deaths per 1,000 live births</h3>",
+                    unsafe_allow_html=True)
+        st.plotly_chart(fig, theme="streamlit", use_container_width=True)
+
+    if selected_plotC == "NMR":
+        fig = px.choropleth_mapbox(data2,
+                                   geojson=data2.geometry,
+                                   locations=data2.index,
+                                   mapbox_style="open-street-map",
+                                   color=data2.Sum_NMR,
+                                   center={'lon': 34.785511, 'lat': 0.430930},
+                                   zoom=8,
+                                   color_continuous_scale="ylgnbu",  # You can choose any color scale you prefer
+                                   range_color=(200, 350)  # Define the range of colors
+                                   )
+
+        st.markdown("<h3 style='text-align: left;'>Neonatal deaths per 1,000 live births</h3>",
+                    unsafe_allow_html=True)
+        st.plotly_chart(fig, theme="streamlit", use_container_width=True)
+
+    if selected_plotC == "% deliveries in L4/5":
+        outcome = (data2.LB_L4 + data2.LB_L5) / data2.Sum_LB
+        fig = px.choropleth_mapbox(data2,
+                                   geojson=data2.geometry,
+                                   locations=data2.index,
+                                   mapbox_style="open-street-map",
+                                   color= outcome,
+                                   center={'lon': 34.785511, 'lat': 0.430930},
+                                   zoom=8,
+                                   color_continuous_scale="ylgnbu",  # You can choose any color scale you prefer
+                                   range_color=(0, 1)  # Define the range of colors
+                                   )
+
+        st.markdown("<h3 style='text-align: left;'>% deliveries in L4/5</h3>",
+                    unsafe_allow_html=True)
+        st.plotly_chart(fig, theme="streamlit", use_container_width=True)
+
+##############Old plots in Streamlit version##################
 # if flag_sub:
 #     num_rows, num_cols = 4, 3
 #     plot_columns = [st.columns(num_cols) for _ in range(num_rows)]
@@ -1093,45 +1644,42 @@ if flag_sub and selected_plotB == "Live births":
 #
 #     st.altair_chart(chart_pushback_1)
 #
-# ##Plot live bith by subcounty level
-# num_rows, num_cols = 4, 3
-# plot_columns = [st.columns(num_cols) for _ in range(num_rows)]
-#
-# for j in range(12):
-#     facility_levels = [f'level{i}' for i in range(SC['LB1s'][j].T.shape[0])]
-#     months = [i + 1 for i in range(SC['LB1s'][j].T.shape[1])]
-#
-#     data = {
-#         "level": [level for level in facility_levels for _ in range(SC['LB1s'][j].T.shape[1])],
-#         "month": [month for _ in range(SC['LB1s'][j].T.shape[0]) for month in months],
-#         "value": SC['LB1s'][j].T.flatten()  # You can name this column as needed
-#     }
-#
-#     df = pd.DataFrame(data)
-#
-#     chart = (
-#         alt.Chart(
-#             data=df,
-#             title=f'Subcounty {j + 1}',
-#         )
-#         .mark_line()
-#         .encode(
-#             x=alt.X("month", axis=alt.Axis(title="Month")),
-#             y=alt.Y("value", axis=alt.Axis(title="# of Births")).scale(domain=(0, 4500)),
-#             color=alt.Color("level:N").title("Level"),
-#         ).properties(
-#         width=300,
-#         height=250
-#         )
-#     )
-#
-#     chart = chart.properties(
-#     ).configure_title(
-#     anchor='middle'
-#     )
-#
-#     row = j // num_cols
-#     col = j % num_cols
-#
-#     with plot_columns[row][col]:
-#         st.altair_chart(chart)
+# if selected_plotA == "Live births":
+    # to_plotbeg = np.vstack((brpush[0,:], rpush[0,:]))
+    # to_plotend = np.vstack((brpush[n_months-1,:], rpush[n_months-1,:]))
+    # num_rows, num_cols = 1, 2
+    # plot_columns = [st.columns(num_cols) for _ in range(num_rows)]
+    #
+    # ymin = min(np.min(to_plotend), np.min(to_plotbeg)) - 100
+    # ymax = max(np.max(to_plotend), np.max(to_plotbeg)) + 100
+    # for j in range(2):
+    #     if j == 0:
+    #         df = to_plotbeg
+    #         month = 1
+    #     else:
+    #         df = to_plotend
+    #         month = 36
+    #     data = pd.DataFrame({
+    #         'Bar': ['Home', 'L2/3', 'L4', 'L5'],
+    #         'Baseline': df.T[:,0],
+    #         'Intervention': df.T[:,1]
+    #     }).melt(id_vars=['Bar'], var_name='Group', value_name='Value')
+    #     chart = alt.Chart(
+    #         data,
+    #         title = f'Change of live births at month {month}',
+    #     ).mark_bar().encode(
+    #         x=alt.X('Group:O', axis=alt.Axis(title=None, labels=False, ticks=False)),
+    #         y=alt.Y('Value:Q', title='Live births', axis=alt.Axis(grid=True)).scale(domain=(ymin, ymax)),
+    #         color=alt.Color('Group:N', scale=alt.Scale(domain=['Baseline', 'Intervention'], range=['blue', 'orange'])),
+    #         column=alt.Column('Bar:N', header=alt.Header(title=None, labelOrient='bottom')),
+    #     ).configure_view(
+    #     stroke='transparent'
+    #     ).configure_title(
+    #       anchor='middle'
+    #    )
+    #
+    #     row = j // num_cols
+    #     col = j % num_cols
+    #
+    #     with plot_columns[row][col]:
+    #         st.altair_chart(chart)
