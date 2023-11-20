@@ -1564,7 +1564,7 @@ if select_level == "Subcounty in Map":
                                    center={'lon': 34.785511, 'lat': 0.430930},
                                    zoom=8,
                                    color_continuous_scale="ylgnbu",  # You can choose any color scale you prefer
-                                   range_color=(200, 350)  # Define the range of colors
+                                   range_color=(0, 600)  # Define the range of colors
                                    )
 
         fig2 = px.choropleth_mapbox(data2,
@@ -1575,7 +1575,7 @@ if select_level == "Subcounty in Map":
                                    center={'lon': 34.785511, 'lat': 0.430930},
                                    zoom=8,
                                    color_continuous_scale="ylgnbu",  # You can choose any color scale you prefer
-                                   range_color=(200, 350)  # Define the range of colors
+                                   range_color=(0, 600)  # Define the range of colors
                                    )
         col1, col2 = st.columns(2)
         with col1:
