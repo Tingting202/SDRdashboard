@@ -26,7 +26,7 @@ with st.sidebar:
     level_options = ("County", "Subcounty", "Subcounty in Map")
     select_level = st.selectbox('Select level of interest:', level_options)
     if select_level == "County":
-        plotA_options = ("Live births", "Neonatal deaths", "Maternal deaths", "Cost effectiveness", "DALYs") #To be added: "MMR", "PPH complications", "Effects of CHV pushback"
+        plotA_options = ("Live births", "Neonatal deaths", "Maternal deaths", "Cost effectiveness", "DALYs", "PPH complications") #To be added: "MMR", "Effects of CHV pushback"
         selected_plotA = st.selectbox(
             label="Select outcome of interest:",
             options=plotA_options,
@@ -822,7 +822,7 @@ def run_model(flags):
 
 flags = [flag_sub, flag_CHV, flag_ANC, flag_ANC2, flag_refer, flag_trans, flag_int1, flag_int2, flag_int3, flag_int4, flag_trans2]
 b_flags = [1,0,0,0,0,0,0,0,0,0,0]
-bSC, bn_MM, bn_nM, bn_nMMs, bn_nMs, bn_stats_H1, bn_stats_H2, bn_stats_L1, bn_stats_L2, boutcomes = run_model(b_flags) # always baseline
+bSC, bn_MM, bn_nM, bn_MMs, bn_nMs, bn_stats_H1, bn_stats_H2, bn_stats_L1, bn_stats_L2, boutcomes = run_model(b_flags) # always baseline
 iSC, n_MM, n_nM, n_MMs, n_nMs, n_stats_H1, n_stats_H2, n_stats_L1, n_stats_L2, outcomes = run_model(flags)                       # intervention, can rename                     # intervention, can rename
 
 ###############PLOTING HERE####################
@@ -1003,9 +1003,7 @@ def get_ce(boutcomes, bn_stats_H1, bn_stats_H2, bn_stats_L1, bn_stats_L2, outcom
 
     INT = set_flags(flags)
 
-    pph_effect_end_H = (scale_CH_est / (
-                INT['mcomp']['PPH']['inc'] * INT['mcomp']['Anemia_PPH']['b'] * INT['mcomp']['PP_PPH']['b'] *
-                (1 - INT['ANC']['bs'] * (INT['ANC']['ANC_PPH']['b']))[n_months - 1]))
+    pph_effect_end_H = (scale_CH_est / (INT['mcomp']['PPH']['inc'] * INT['mcomp']['Anemia_PPH']['b'] *  INT['mcomp']['PP_PPH']['b'] * (1 - INT['ANC']['bs'] * (INT['ANC']['ANC_PPH']['b']))[n_months-1]* INT['mcomp']['PPH']['b']))
     pph_effect_end_L = (scale_CL_est / (INT['mcomp']['PPH']['inc'] * INT['mcomp']['Anemia_PPH']['b'] *
                                         (1 - INT['ANC']['bs'] * (INT['ANC']['ANC_PPH']['b']))[n_months - 1]))
 
@@ -1127,18 +1125,24 @@ push_H = np.concatenate(n_stats_L1['Initial Complications Post Referral'].to_num
 ### PPH Hemorrhage ###
 if selected_plotA == "PPH complications":
     ### PPH Hemorrhage ###
-    pph_effect_beg_H = (scale_CH_est / (
-                INT['comp']['PPH']['inc'] * INT['comp']['Anemia_PPH']['b'] * INT['comp']['PP_PPH']['b'] *
-                (1 - INT['ANC']['bs'] * (INT['ANC']['ANC_PPH']['b']))[0]))
-    pph_effect_end_H = (scale_CH_est / (
-                INT['comp']['PPH']['inc'] * INT['comp']['Anemia_PPH']['b'] * INT['comp']['PP_PPH']['b'] *
-                (1 - INT['ANC']['bs'] * (INT['ANC']['ANC_PPH']['b']))[n_months - 1]))
-    pph_effect_beg_L = (scale_CL_est / (INT['comp']['PPH']['inc'] * INT['comp']['Anemia_PPH']['b'] *
-                                        (1 - INT['ANC']['bs'] * (INT['ANC']['ANC_PPH']['b']))[0]))
-    pph_effect_end_L = (scale_CL_est / (INT['comp']['PPH']['inc'] * INT['comp']['Anemia_PPH']['b'] *
-                                        (1 - INT['ANC']['bs'] * (INT['ANC']['ANC_PPH']['b']))[n_months - 1]))
+    iINT = set_flags(flags)
+    bpush_L = np.concatenate(bn_stats_L2['Initial Complications Post Referral'].to_numpy()).reshape((n_months, 4))
+    bpush_H = np.concatenate(bn_stats_L1['Initial Complications Post Referral'].to_numpy()).reshape((n_months, 4))
+    bpush = bpush_L + bpush_H
+    push = push_L + push_H
 
-    no_effect = (scale_CH_est / INT['comp']['PPH']['inc'])
+    pph_effect_beg_H = (scale_CH_est / (
+                iINT['mcomp']['PPH']['inc'] * iINT['mcomp']['Anemia_PPH']['b'] * iINT['mcomp']['PP_PPH']['b'] *
+                (1 - iINT['ANC']['bs'] * (iINT['ANC']['ANC_PPH']['b']))[0] * iINT['mcomp']['PPH']['b']))
+    pph_effect_end_H = (scale_CH_est / (
+                iINT['mcomp']['PPH']['inc'] * iINT['mcomp']['Anemia_PPH']['b'] * iINT['mcomp']['PP_PPH']['b'] *
+                (1 - iINT['ANC']['bs'] * (iINT['ANC']['ANC_PPH']['b']))[n_months - 1] * iINT['mcomp']['PPH']['b']))
+    pph_effect_beg_L = (scale_CL_est / (iINT['mcomp']['PPH']['inc'] * iINT['mcomp']['Anemia_PPH']['b'] *
+                                        (1 - iINT['ANC']['bs'] * (iINT['ANC']['ANC_PPH']['b']))[0]))
+    pph_effect_end_L = (scale_CL_est / (iINT['mcomp']['PPH']['inc'] * iINT['mcomp']['Anemia_PPH']['b'] *
+                                        (1 - iINT['ANC']['bs'] * (iINT['ANC']['ANC_PPH']['b']))[n_months - 1]))
+
+    no_effect = (scale_CH_est / iINT['mcomp']['PPH']['inc'])
 
     to_plotbeg = np.vstack(
         (bpush[0, :] / no_effect, bpush_L[0, :] / pph_effect_beg_L + bpush_H[0, :] / pph_effect_beg_H))
@@ -1456,36 +1460,80 @@ if select_level == "Subcounty in Map":
     NM_matrix = np.zeros((12, 4))
     MMR_matrix = np.zeros((12, 4))
     NMR_matrix = np.zeros((12, 4))
+    bLB_matrix = np.zeros((12, 4))
+    bMM_matrix = np.zeros((12, 4))
+    bNM_matrix = np.zeros((12, 4))
+    bMMR_matrix = np.zeros((12, 4))
+    bNMR_matrix = np.zeros((12, 4))
     for i in range(12):
-        LB_matrix[i, :] = SC['LB1s'][i][35, :]
+        LB_matrix[i, :] = iSC['LB1s'][i][35, :]
         MM_matrix[i, :] = np.sum(n_MMs, axis=3)[35,:,i]
         NM_matrix[i, :] = np.sum(n_nMs, axis=3)[35,:,i]
+        bLB_matrix[i, :] = bSC['LB1s'][i][35, :]
+        bMM_matrix[i, :] = np.sum(bn_MMs, axis=3)[35,:,i]
+        bNM_matrix[i, :] = np.sum(bn_nMs, axis=3)[35,:,i]
         for j in range(4):
             MMR_matrix[i, j] = MM_matrix[i, j] / LB_matrix[i, j] * 1000
             NMR_matrix[i, j] = NM_matrix[i, j] / LB_matrix[i, j] * 1000
+            bMMR_matrix[i, j] = bMM_matrix[i, j] / bLB_matrix[i, j] * 1000
+            bNMR_matrix[i, j] = bNM_matrix[i, j] / bLB_matrix[i, j] * 1000
 
     MMR_matrix[np.isinf(MMR_matrix)] = 0
     NMR_matrix[np.isinf(NMR_matrix)] = 0
+    bMMR_matrix[np.isinf(MMR_matrix)] = 0
+    bNMR_matrix[np.isinf(NMR_matrix)] = 0
     df_MMR = pd.DataFrame(MMR_matrix)
     df_NMR = pd.DataFrame(NMR_matrix)
     df_LB = pd.DataFrame(LB_matrix)
+    df_bMMR = pd.DataFrame(bMMR_matrix)
+    df_bNMR = pd.DataFrame(bNMR_matrix)
+    df_bLB = pd.DataFrame(bLB_matrix)
     new_column_names_MMR = ['MMR_Home', 'MMR_L23', "MMR_L4", "MMR_L5"]
     new_column_names_NMR = ['NMR_Home', 'NMR_L23', "NMR_L4", "NMR_L5"]
     new_column_names_LB = ['LB_Home', 'LB_L23', "LB_L4", "LB_L5"]
+    new_column_names_bMMR = ['bMMR_Home', 'bMMR_L23', "bMMR_L4", "bMMR_L5"]
+    new_column_names_bNMR = ['bNMR_Home', 'bNMR_L23', "bNMR_L4", "bNMR_L5"]
+    new_column_names_bLB = ['bLB_Home', 'bLB_L23', "bLB_L4", "bLB_L5"]
     df_MMR.columns = new_column_names_MMR
     df_NMR.columns = new_column_names_NMR
     df_LB.columns = new_column_names_LB
+    df_bMMR.columns = new_column_names_bMMR
+    df_bNMR.columns = new_column_names_bNMR
+    df_bLB.columns = new_column_names_bLB
     df_MMR['Sum_MMR'] = df_MMR.iloc[:, 0:4].sum(axis=1)
     df_NMR['Sum_NMR'] = df_NMR.iloc[:, 0:4].sum(axis=1)
     df_LB['Sum_LB'] = df_LB.iloc[:, 0:4].sum(axis=1)
+    df_bMMR['Sum_bMMR'] = df_bMMR.iloc[:, 0:4].sum(axis=1)
+    df_bNMR['Sum_bNMR'] = df_bNMR.iloc[:, 0:4].sum(axis=1)
+    df_bLB['Sum_bLB'] = df_bLB.iloc[:, 0:4].sum(axis=1)
     df_MMR['subcounty'] = subcounties
     df_NMR['subcounty'] = subcounties
     df_LB['subcounty'] = subcounties
+    df_bMMR['subcounty'] = subcounties
+    df_bNMR['subcounty'] = subcounties
+    df_bLB['subcounty'] = subcounties
     data2 = data2.merge(df_MMR, left_on='subcounty', right_on='subcounty')
     data2 = data2.merge(df_NMR, left_on='subcounty', right_on='subcounty')
     data2 = data2.merge(df_LB, left_on='subcounty', right_on='subcounty')
+    data2 = data2.merge(df_bMMR, left_on='subcounty', right_on='subcounty')
+    data2 = data2.merge(df_bNMR, left_on='subcounty', right_on='subcounty')
+    data2 = data2.merge(df_bLB, left_on='subcounty', right_on='subcounty')
     if selected_plotC == "MMR":
-        fig = px.choropleth_mapbox(data2,
+        st.markdown("<h3 style='text-align: left;'>Maternal deaths per 1,000 live births</h3>",
+                    unsafe_allow_html=True)
+
+        fig1 = px.choropleth_mapbox(data2,
+                               geojson=data2.geometry,
+                               locations=data2.index,
+                               mapbox_style="open-street-map",
+                               color=data2.Sum_bMMR,
+                               center={'lon': 34.785511, 'lat': 0.430930},
+                               zoom=8,
+                               color_continuous_scale="ylgnbu",  # You can choose any color scale you prefer
+                               range_color=(20, 70)  # Define the range of colors
+                                   )
+
+        fig2 = px.choropleth_mapbox(data2,
                                geojson=data2.geometry,
                                locations=data2.index,
                                mapbox_style="open-street-map",
@@ -1493,15 +1541,33 @@ if select_level == "Subcounty in Map":
                                center={'lon': 34.785511, 'lat': 0.430930},
                                zoom=8,
                                color_continuous_scale="ylgnbu",  # You can choose any color scale you prefer
-                               range_color=(20, 50)  # Define the range of colors
+                               range_color=(20, 70)  # Define the range of colors
                                    )
+        col1, col2 = st.columns(2)
+        with col1:
+            st.write('Baseline')
+            st.plotly_chart(fig1, theme="streamlit", use_container_width=True)
+        with col2:
+            st.write('Intervention')
+            st.plotly_chart(fig2, theme="streamlit", use_container_width=True)
 
-        st.markdown("<h3 style='text-align: left;'>Maternal deaths per 1,000 live births</h3>",
-                    unsafe_allow_html=True)
-        st.plotly_chart(fig, theme="streamlit", use_container_width=True)
 
     if selected_plotC == "NMR":
-        fig = px.choropleth_mapbox(data2,
+        st.markdown("<h3 style='text-align: left;'>Neonatal deaths per 1,000 live births</h3>",
+                    unsafe_allow_html=True)
+
+        fig1 = px.choropleth_mapbox(data2,
+                                   geojson=data2.geometry,
+                                   locations=data2.index,
+                                   mapbox_style="open-street-map",
+                                   color=data2.Sum_bNMR,
+                                   center={'lon': 34.785511, 'lat': 0.430930},
+                                   zoom=8,
+                                   color_continuous_scale="ylgnbu",  # You can choose any color scale you prefer
+                                   range_color=(200, 350)  # Define the range of colors
+                                   )
+
+        fig2 = px.choropleth_mapbox(data2,
                                    geojson=data2.geometry,
                                    locations=data2.index,
                                    mapbox_style="open-street-map",
@@ -1511,27 +1577,46 @@ if select_level == "Subcounty in Map":
                                    color_continuous_scale="ylgnbu",  # You can choose any color scale you prefer
                                    range_color=(200, 350)  # Define the range of colors
                                    )
-
-        st.markdown("<h3 style='text-align: left;'>Neonatal deaths per 1,000 live births</h3>",
-                    unsafe_allow_html=True)
-        st.plotly_chart(fig, theme="streamlit", use_container_width=True)
+        col1, col2 = st.columns(2)
+        with col1:
+            st.write('Baseline')
+            st.plotly_chart(fig1, theme="streamlit", use_container_width=True)
+        with col2:
+            st.write('Intervention')
+            st.plotly_chart(fig2, theme="streamlit", use_container_width=True)
 
     if selected_plotC == "% deliveries in L4/5":
+        st.markdown("<h3 style='text-align: left;'>% deliveries in L4/5</h3>",
+                    unsafe_allow_html=True)
+        boutcome = (data2.bLB_L4 + data2.bLB_L5) / data2.Sum_bLB
         outcome = (data2.LB_L4 + data2.LB_L5) / data2.Sum_LB
-        fig = px.choropleth_mapbox(data2,
+        fig1 = px.choropleth_mapbox(data2,
                                    geojson=data2.geometry,
                                    locations=data2.index,
                                    mapbox_style="open-street-map",
-                                   color= outcome,
+                                   color= boutcome,
                                    center={'lon': 34.785511, 'lat': 0.430930},
                                    zoom=8,
                                    color_continuous_scale="ylgnbu",  # You can choose any color scale you prefer
                                    range_color=(0, 1)  # Define the range of colors
                                    )
-
-        st.markdown("<h3 style='text-align: left;'>% deliveries in L4/5</h3>",
-                    unsafe_allow_html=True)
-        st.plotly_chart(fig, theme="streamlit", use_container_width=True)
+        fig2 = px.choropleth_mapbox(data2,
+                                    geojson=data2.geometry,
+                                    locations=data2.index,
+                                    mapbox_style="open-street-map",
+                                    color=outcome,
+                                    center={'lon': 34.785511, 'lat': 0.430930},
+                                    zoom=8,
+                                    color_continuous_scale="ylgnbu",  # You can choose any color scale you prefer
+                                    range_color=(0, 1)  # Define the range of colors
+                                    )
+        col1, col2 = st.columns(2)
+        with col1:
+            st.write('Baseline')
+            st.plotly_chart(fig1, theme="streamlit", use_container_width=True)
+        with col2:
+            st.write('Intervention')
+            st.plotly_chart(fig2, theme="streamlit", use_container_width=True)
 
 ##############Old plots in Streamlit version##################
 # if flag_sub:
