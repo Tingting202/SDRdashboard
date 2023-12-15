@@ -919,7 +919,7 @@ with st.form('Test'):
                     .mark_line()
                     .encode(
                         x=alt.X("month", axis=alt.Axis(title="Month")),
-                        y=alt.Y("value", axis=alt.Axis(title="# of Live births"), scale=alt.Scale(domain=[0, 25000])),
+                        y=alt.Y("value", axis=alt.Axis(title="# of Live births"), scale=alt.Scale(domain=[0, 30000])),
                         color=alt.Color("level:N").title("Level"),
                     ).properties(
                         width=400,
