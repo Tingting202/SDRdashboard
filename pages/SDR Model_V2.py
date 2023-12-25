@@ -853,8 +853,10 @@ with (st.form('Test')):
         # # Subcounty level live birth and MMR
         LB_SC = np.concatenate(df_outcomes['Live Births Final'].values).reshape(-1, 4)
         LB_SC = np.column_stack((LB_SC, np.sum(LB_SC, axis=1)))
+        LBtot = LB_SC[:, -1]
         bLB_SC = np.concatenate(df_b_outcomes['Live Births Final'].values).reshape(-1, 4)
         bLB_SC = np.column_stack((bLB_SC, np.sum(bLB_SC, axis=1)))
+        bLBtot = bLB_SC[:, -1]
 
         bMM_SC = np.concatenate(df_b_outcomes['Deaths'].values).reshape(-1, 4)
         bMM_SC = np.array(np.column_stack((bMM_SC, np.sum(bMM_SC, axis=1))), dtype=np.float64)
@@ -873,17 +875,16 @@ with (st.form('Test')):
 
         # #Subcounty level complications
         Com_SC = np.array([np.sum(arr, axis=1) for arr in df_outcomes['Complications-Health']], dtype=np.float64)
-        LBtot = LB_SC[:, -1]
         ComR_SC = Com_SC / LBtot[:, np.newaxis] * 1000
         bCom_SC = np.array([np.sum(arr, axis=1) for arr in df_b_outcomes['Complications-Health']], dtype=np.float64)
-        bLBtot = bLB_SC[:, -1]
         bComR_SC = bCom_SC / bLBtot[:, np.newaxis] * 1000
 
         Com_SC = np.hstack((df_outcomes[['Subcounty', 'Time']], Com_SC))
         bCom_SC = np.hstack((df_b_outcomes[['Subcounty', 'Time']], bCom_SC))
         ComR_SC = np.hstack((df_outcomes[['Subcounty', 'Time']], ComR_SC))
         bComR_SC = np.hstack((df_b_outcomes[['Subcounty', 'Time']], bComR_SC))
-        LBtot = np.hstack((df_outcomes[['Subcounty', 'Time']], LBtot))
+        LBtot = np.hstack((df_outcomes[['Subcounty', 'Time']], LBtot.reshape(-1, 1)))
+
 
         ####Define functions for plotting
         faccols = ['Subcounty', 'month', 'Home', 'L2/3', 'L4', 'L5', 'Sum']
@@ -1170,20 +1171,20 @@ with (st.form('Test')):
                 p_title = ['Baseline', 'Intervention']
                 col0, col1 = st.columns(2)
                 with col0:
-                    countylineplots(bLB_SC[:, :6], faccols, 0, "Number of live births", 40000)
+                    countylineplots(bLB_SC[:, :6], faccols[:6], 0, "Number of live births", 40000)
                 with col1:
-                    countylineplots(LB_SC[:, :6], faccols, 1, "Number of live births", 40000)
+                    countylineplots(LB_SC[:, :6], faccols[:6], 1, "Number of live births", 40000)
 
             with tab2:
                 p_title = ['Baseline', 'Intervention']
                 col0, col1 = st.columns(2)
                 with col0:
-                    countypieplots(bLB_SC[:, :6], faccols, 0)
+                    countypieplots(bLB_SC[:, :6], faccols[:6], 0)
                 with col1:
-                    countypieplots(LB_SC[:, :6], faccols,1)
+                    countypieplots(LB_SC[:, :6], faccols[:6],1)
 
             with tab3:
-                countybarplots(bLB_SC[:, :6], LB_SC[:, :6], faccols, "Number of live births")
+                countybarplots(bLB_SC[:, :6], LB_SC[:, :6], faccols[:6], "Number of live births")
 
         if selected_plotA == "Complications":
             st.markdown("<h3 style='text-align: left;'>Complications</h3>",
@@ -1212,20 +1213,20 @@ with (st.form('Test')):
                 p_title = ['Baseline', 'Intervention']
                 col0, col1 = st.columns(2)
                 with col0:
-                    countylineplots(bMM_SC[:, :6], faccols, 0, "Number of maternal deaths", 50)
+                    countylineplots(bMM_SC[:, :6], faccols[:6], 0, "Number of maternal deaths", 50)
                 with col1:
-                    countylineplots(MM_SC[:, :6], faccols,1, "Number of maternal deaths", 50)
+                    countylineplots(MM_SC[:, :6], faccols[:6],1, "Number of maternal deaths", 50)
 
             with tab2:
                 p_title = ['Baseline', 'Intervention']
                 col0, col1 = st.columns(2)
                 with col0:
-                    countypieplots(bMM_SC[:, :6], faccols,0)
+                    countypieplots(bMM_SC[:, :6], faccols[:6],0)
                 with col1:
-                    countypieplots(MM_SC[:, :6], faccols,1)
+                    countypieplots(MM_SC[:, :6], faccols[:6],1)
 
             with tab3:
-                countybarplots(bMM_SC[:, :6], MM_SC[:, :6], faccols, "Number of maternal deaths")
+                countybarplots(bMM_SC[:, :6], MM_SC[:, :6], faccols[:6], "Number of maternal deaths")
 
         # if selected_plotA == "Complication rate":
         #     st.markdown("<h3 style='text-align: left;'>Complications per 1000 live births</h3>",
