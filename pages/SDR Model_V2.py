@@ -87,7 +87,7 @@ with st.sidebar:
                          "Maternal deaths", "MMR",
                          "Cost effectiveness",
                          "Complications",
-                         #"Complication rate",
+                         "Complication rate",
                          #"Quality of care"
                          )
         selected_plotA = st.selectbox(
@@ -1228,30 +1228,42 @@ with (st.form('Test')):
             with tab3:
                 countybarplots(bMM_SC[:, :6], MM_SC[:, :6], faccols[:6], "Number of maternal deaths")
 
-        # if selected_plotA == "Complication rate":
-        #     st.markdown("<h3 style='text-align: left;'>Complications per 1000 live births</h3>",
-        #                 unsafe_allow_html=True)
-        #     tab1, tab2 = st.tabs(["Line plots", "Bar charts"])
-        #     p_title = ['Baseline', 'Intervention']
-        #
-        #     with tab1:
-        #         options = comcols[2:7]
-        #         selected_options = st.multiselect('Select levels', options)
-        #
-        #         def createComRdf(LBdf, Comdf, cols):
-        #             df1 = pd.DataFrame(LBdf)
-        #             df2 = pd.DataFrame(Comdf)
-        #             df1.columns = ['Subcounty', 'month', 'LB']
-        #             df1 = df1.groupby(['level', 'month'])['LB'].sum().reset_index()
-        #             df2.columns = cols
-        #             df2 = df2.melt(id_vars=['Subcounty', 'month'], var_name='level', value_name='value')
-        #             df2 = df2.groupby(['level', 'month'])['value'].sum().reset_index()
-        #             df2.rename(columns={df2.columns[2]: 'Com'}, inplace=True)
-        #             df = pd.merge(df1, df2, on=['level', 'month'], how='left')
-        #             df['ComR'] = df['Com'] / df['LB'] * 1000
-        #             return df
-        #
-        #         col0, col1 = st.columns(2)
+        if selected_plotA == "Complication rate":
+            st.markdown("<h3 style='text-align: left;'>Complications per 1000 live births</h3>",
+                        unsafe_allow_html=True)
+            tab1, tab2 = st.tabs(["Line plots", "Bar charts"])
+            p_title = ['Baseline', 'Intervention']
+
+            with tab1:
+                options = comcols[2:7]
+                selected_options = st.multiselect('Select levels', options)
+
+                def createComRdf(LBdf, Comdf, cols):
+                    df1 = pd.DataFrame(LBdf)
+                    df2 = pd.DataFrame(Comdf)
+                    df1.columns = ['Subcounty', 'month', 'LB']
+                    df1 = df1.groupby(['month'])['LB'].sum().reset_index()
+                    df2.columns = cols
+                    df2 = df2.melt(id_vars=['Subcounty', 'month'], var_name='level', value_name='value')
+                    df2 = df2.groupby(['level', 'month'])['value'].sum().reset_index()
+                    df2.rename(columns={df2.columns[2]: 'Com'}, inplace=True)
+                    df = pd.merge(df1, df2, on=['month'], how='left')
+                    df['ComR'] = df['Com'] / df['LB'] * 1000
+                    return df
+
+                col0, col1 = st.columns(2)
+                df1 = createComRdf(LBtot, bCom_SC, comcols)
+                ymax = df1['ComR'].max()
+                df1 = df1[df1['level'].isin(selected_options)]
+                df2 = createComRdf(LBtot, Com_SC, comcols)
+                df2 = df2[df2['level'].isin(selected_options)]
+
+                with col0:
+                    chart = lineplots(df1, p_title[0], "ComR", "Complication rate", ymax)
+                    st.altair_chart(chart)
+                with col1:
+                    chart = lineplots(df2, p_title[1], "ComR", "Complication rate", ymax)
+                    st.altair_chart(chart)
 
         if selected_plotA == "MMR":
             st.markdown("<h3 style='text-align: left;'>Maternal deaths per 1000 live births (MMR)</h3>",
@@ -1423,6 +1435,7 @@ with (st.form('Test')):
 
             tab1, tab2 = st.tabs(["Line plots", "Bar charts"])
             dfs = [bMM_SC[:,:6], MM_SC[:,:6]]
+            ymax = np.max(bMM_SC[:,:6])
             with tab1:
                 level_options = ['Home', 'L2/3', 'L4', 'L5']
                 selected_levels = st.multiselect('Select levels:', level_options)
@@ -1430,12 +1443,12 @@ with (st.form('Test')):
                 col0, col1, col3 = st.columns(3)
                 col = [col0, col1, col3]
                 for i in range(2):
-                    chart = SDRsubcountylineplots(i, faccols, 6, "Number of maternal deaths", 5)
+                    chart = SDRsubcountylineplots(i, faccols, 6, "Number of maternal deaths", ymax)
                     with col[i]:
                         st.altair_chart(chart)
 
                 with col[2]:
-                    chart = NonSDRsubcountylineplots(2, faccols,6, "Number of maternal deaths", 5)
+                    chart = NonSDRsubcountylineplots(2, faccols,6, "Number of maternal deaths", ymax)
                     st.altair_chart(chart)
             with tab2:
                 SDRsubcountybarplots(faccols,6, "Maternal deaths")
@@ -1449,6 +1462,7 @@ with (st.form('Test')):
 
             tab1, tab2 = st.tabs(["Line plots", "Bar charts"])
             dfs = [bMMR_SC, MMR_SC]
+            ymax = min(np.max(bMMR_SC), 5)
             with tab1:
                 level_options = ['Home', 'L2/3', 'L4', 'L5', 'Sum']
                 selected_levels = st.multiselect('Select levels:', level_options)
@@ -1456,12 +1470,12 @@ with (st.form('Test')):
                 col0, col1, col2 = st.columns(3)
                 col = [col0, col1, col2]
                 for i in range(2):
-                    chart = SDRsubcountylineplots(i, faccols,7, "MMR", 4)
+                    chart = SDRsubcountylineplots(i, faccols,7, "MMR", ymax)
                     with col[i]:
                         st.altair_chart(chart)
 
                 with col[2]:
-                    chart = NonSDRsubcountylineplots(2, faccols,7, "MMR", 4)
+                    chart = NonSDRsubcountylineplots(2, faccols,7, "MMR", ymax)
                     st.altair_chart(chart)
             with tab2:
                 SDRsubcountybarplots(faccols,7, "MMR")
@@ -1473,6 +1487,7 @@ with (st.form('Test')):
             p_title = [selected_options + ': Baseline', selected_options + ': Intervention', 'Average of Non-SDR subcounties']
             tab1, tab2, tab3 = st.tabs(["Line plots", "Pie charts", "Bar charts"])
             dfs = [bLB_SC[:,:6], LB_SC[:,:6]]
+            ymax = np.max(LB_SC[:,:6])
 
             with tab1:
                 level_options = ['Home', 'L2/3', 'L4', 'L5']
@@ -1480,11 +1495,11 @@ with (st.form('Test')):
                 col0, col1, col2 = st.columns(3)
                 col = [col0, col1, col2]
                 for i in range(2):
-                    chart = SDRsubcountylineplots(i, faccols, 6, "Number of live births", 2500)
+                    chart = SDRsubcountylineplots(i, faccols, 6, "Number of live births", ymax)
                     with col[i]:
                         st.altair_chart(chart)
                 with col[2]:
-                    chart = NonSDRsubcountylineplots(2, faccols,6, "Number of live births", 2500)
+                    chart = NonSDRsubcountylineplots(2, faccols,6, "Number of live births", ymax)
                     st.altair_chart(chart)
 
             with tab2:
@@ -1510,6 +1525,7 @@ with (st.form('Test')):
 
             tab1, tab2 = st.tabs(["Line plots", "Bar charts"])
             dfs = [bCom_SC, Com_SC]
+            ymax = np.max(bCom_SC)
             with tab1:
                 level_options = ['PPH', 'Sepsis', 'Eclampsia', 'Obstructed', 'Others']
                 selected_levels = st.multiselect('Select levels:', level_options)
@@ -1517,12 +1533,12 @@ with (st.form('Test')):
                 col0, col1, col3 = st.columns(3)
                 col = [col0, col1, col3]
                 for i in range(2):
-                    chart = SDRsubcountylineplots(i, comcols, 7, "Number of complications", 120)
+                    chart = SDRsubcountylineplots(i, comcols, 7, "Number of complications", ymax)
                     with col[i]:
                         st.altair_chart(chart)
 
                 with col[2]:
-                    chart = NonSDRsubcountylineplots(2, comcols, 7, "Number of complications", 120)
+                    chart = NonSDRsubcountylineplots(2, comcols, 7, "Number of complications", ymax)
                     st.altair_chart(chart)
             with tab2:
                 SDRsubcountybarplots(comcols,7, "Number of complications")
@@ -1536,6 +1552,7 @@ with (st.form('Test')):
 
             tab1, tab2 = st.tabs(["Line plots", "Bar charts"])
             dfs = [bComR_SC, ComR_SC]
+            ymax = np.max(bComR_SC)
             with tab1:
                 level_options = ['PPH', 'Sepsis', 'Eclampsia', 'Obstructed', 'Others']
                 selected_levels = st.multiselect('Select levels:', level_options)
@@ -1543,12 +1560,12 @@ with (st.form('Test')):
                 col0, col1, col3 = st.columns(3)
                 col = [col0, col1, col3]
                 for i in range(2):
-                    chart = SDRsubcountylineplots(i, comcols, 7, "Complication rate", 20)
+                    chart = SDRsubcountylineplots(i, comcols, 7, "Complication rate", ymax)
                     with col[i]:
                         st.altair_chart(chart)
 
                 with col[2]:
-                    chart = NonSDRsubcountylineplots(2, comcols, 7, "Complication rate", 20)
+                    chart = NonSDRsubcountylineplots(2, comcols, 7, "Complication rate", ymax)
                     st.altair_chart(chart)
             with tab2:
                 SDRsubcountybarplots(comcols,7, "Complication rate")
