@@ -926,7 +926,7 @@ with (st.form('Test')):
 
             tab1, tab2 = st.tabs(["Line plots", "Bar charts"])
             dfs = [bMM_SC[:,:6], MM_SC[:,:6]]
-            ymax = np.max(bMM_SC[:,:6])
+            ymax = np.max(bMM_SC[:,2:6])
             with tab1:
                 level_options = ['Home', 'L2/3', 'L4', 'L5']
                 selected_levels = st.multiselect('Select levels:', level_options)
@@ -953,7 +953,7 @@ with (st.form('Test')):
 
             tab1, tab2 = st.tabs(["Line plots", "Bar charts"])
             dfs = [bMMR_SC, MMR_SC]
-            ymax = min(np.max(bMMR_SC), 5)
+            ymax = np.max(bMMR_SC[:,2:7])
             with tab1:
                 level_options = ['Home', 'L2/3', 'L4', 'L5', 'Sum']
                 selected_levels = st.multiselect('Select levels:', level_options)
@@ -978,7 +978,7 @@ with (st.form('Test')):
             p_title = [selected_options + ': Baseline', selected_options + ': Intervention', 'Average of Non-SDR subcounties']
             tab1, tab2, tab3 = st.tabs(["Line plots", "Pie charts", "Bar charts"])
             dfs = [bLB_SC[:,:6], LB_SC[:,:6]]
-            ymax = np.max(LB_SC[:,:6])
+            ymax = np.max(LB_SC[:,2:6])
 
             with tab1:
                 level_options = ['Home', 'L2/3', 'L4', 'L5']
@@ -1016,7 +1016,7 @@ with (st.form('Test')):
 
             tab1, tab2 = st.tabs(["Line plots", "Bar charts"])
             dfs = [bCom_SC, Com_SC]
-            ymax = np.max(bCom_SC)
+            ymax = np.max(bCom_SC[:,2:7])
             with tab1:
                 level_options = ['PPH', 'Sepsis', 'Eclampsia', 'Obstructed', 'Others']
                 selected_levels = st.multiselect('Select levels:', level_options)
@@ -1043,7 +1043,7 @@ with (st.form('Test')):
 
             tab1, tab2 = st.tabs(["Line plots", "Bar charts"])
             dfs = [bComR_SC, ComR_SC]
-            ymax = np.max(bComR_SC)
+            ymax = np.max(bComR_SC[:,2:7])
             with tab1:
                 level_options = ['PPH', 'Sepsis', 'Eclampsia', 'Obstructed', 'Others']
                 selected_levels = st.multiselect('Select levels:', level_options)
