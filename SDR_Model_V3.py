@@ -860,7 +860,7 @@ with (st.form('Test')):
         def NonSDRsubcountypieplots(cols, colindex):
             df = creatsubcountydf(dfs[0], cols, colindex)
             df = df[df['SDR'] == 'Non-SDR']
-            df = df.groupby(['month', 'level'], as_index=False).mean()
+            df = df.groupby(['month', 'level'], as_index=False).agg({'value': 'mean'})     #.mean()
             df = df[df['month'] == 35]
             df['Percentage'] = (df['value'] / df['value'].sum()) * 100
             chart = pieplots(df, p_title[2])
@@ -914,7 +914,7 @@ with (st.form('Test')):
             df = creatsubcountydf(dfs[0], cols, colindex)
             df = df[df['SDR'] == 'Non-SDR']
             df = df[df['level'].isin(selected_levels)]
-            df = df.groupby(['month', 'level'], as_index=False).mean()
+            df = df.groupby(['month', 'level'], as_index=False).agg({'value': 'mean'})  #.mean()
             chart = lineplots(df, p_title[i], "value", ytitle, ymax)
             return chart
 
