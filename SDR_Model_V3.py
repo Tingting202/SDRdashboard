@@ -19,7 +19,6 @@ options = {
 selected_plotA = None
 selected_plotB = None
 selected_plotC = None
-flag_sub = 0
 flag_CHV = 0
 flag_ANC = 0
 flag_ANC_time = 0
@@ -99,7 +98,6 @@ with st.sidebar:
             options=plotA_options,
         )
     if select_level == "Subcounty":
-        flag_sub = 1
         plotB_options = ("Live births",
                          "Maternal deaths",
                          "MMR",
@@ -112,7 +110,6 @@ with st.sidebar:
             options=plotB_options,
         )
     if select_level == "Subcounty in Map":
-        flag_sub = 1
         plotC_options = (#"MMR",
                          # "% deliveries in L4/5"
         )
@@ -129,9 +126,6 @@ with st.sidebar:
 
 st.subheader("SDR policy")
 SDR_int = st.checkbox('SDR interventions (both supply and demand)')
-if SDR_int:
-    flag_sdr = 1
-    CHV_pushback = 1
 col1, col2, col3 = st.columns(3)
 with col1:
     st.subheader("SDR demand")
@@ -207,6 +201,15 @@ with col3:
             with col3_2:
                 flag_int3 = 1
                 diagnosisrate = st.slider('Coverage at L2/3', min_value=0.0, max_value=1.0, step=0.1, value=0.5)
+
+if SDR_int:
+    flag_sdr = 1
+    CHV_pushback = 1
+    CHV_cov = 1
+    CHV_45 = 0.02
+    know_added = 0.2
+    supply_added = 0.2
+    capacity_added = 0.2
 
 global_vars = [ANCadded, CHV_pushback, CHV_cov, CHV_45, know_added, supply_added, capacity_added, transadded, referadded, ultracovhome, diagnosisrate]
 
@@ -857,8 +860,8 @@ with (st.form('Test')):
         def NonSDRsubcountypieplots(cols, colindex):
             df = creatsubcountydf(dfs[0], cols, colindex)
             df = df[df['SDR'] == 'Non-SDR']
-            df = df[df['month'] == 35]
             df = df.groupby(['month', 'level'], as_index=False).mean()
+            df = df[df['month'] == 35]
             df['Percentage'] = (df['value'] / df['value'].sum()) * 100
             chart = pieplots(df, p_title[2])
             return chart
