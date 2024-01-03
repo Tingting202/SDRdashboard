@@ -1,6 +1,7 @@
 import numpy as np
 from sympy import symbols, Eq, solve
 import pandas as pd
+from scipy.optimize import fsolve
 
 n_months = 36
 t = np.arange(n_months)
@@ -215,15 +216,15 @@ def reset_INT():
     return INTp
 
 def odds_prob(oddsratio, p_comp, p_expose):
-    """get probability of complication given exposure given odds ratio"""
-    oddsratio = oddsratio
-    p_comp = p_comp
-    p_expose = p_expose
+    def equations(vars):
+        x, y = vars
+        eq1 = x / (1 - x) / (y / (1 - y)) - oddsratio
+        eq2 = p_comp - p_expose * x - (1 - p_expose) * y
+        return [eq1, eq2]
 
-    x, y = symbols('x y')
-    eq1 = Eq(x/(1-x)/(y/(1-y))-oddsratio,0)
-    eq2 = Eq(p_comp - p_expose*x - (1-p_expose)*y,0)
-    solution = solve((eq1,eq2), (x, y))[0]
+    initial_guess = [0.5, 0.5]  # Initial guess for x and y
+    solution = fsolve(equations, initial_guess)
+
     return solution
 
 def get_aggregate(df):

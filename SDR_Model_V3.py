@@ -9,6 +9,7 @@ import altair as alt
 import math
 import plotly.graph_objs as go
 from SDR_Dec_streamlit_functions import run_model, get_aggregate, get_cost_effectiveness
+from scipy.optimize import fsolve
 
 st.set_page_config(layout="wide")
 options = {
