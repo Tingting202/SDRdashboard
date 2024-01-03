@@ -583,6 +583,45 @@ with (st.form('Test')):
             source = []
             target = []
             value = []
+            adj_matx = [b_lb_anc, b_anc_anemia, b_anemia_comp, b_comp_health, expand_out]
+            # adj_matx = [lb_anc, anc_anemia, anemia_comp]
+            for z, matx in enumerate(adj_matx):
+                for i in range(matx.shape[0]):
+                    for j in range(matx.shape[1]):
+                        source.append(sankey_dict[matx.index[i]])
+                        target.append(sankey_dict[matx.columns[j]])
+                        value.append((matx.iloc[i, j]))
+
+            fig = go.Figure(data=[go.Sankey(
+                arrangement='snap',
+                node=dict(
+                    pad=15,
+                    thickness=20,
+                    line=dict(color='black', width=0.5),
+                    label=nodes,
+                    x=[0, 1 / 5, 1 / 5, 2 / 5, 2 / 5, 3 / 5, 3 / 5, 3 / 5, 3 / 5, 3 / 5, 4 / 5, 4 / 5, 5 / 5, 5 / 5,
+                       5 / 5, 5 / 5],
+                    y=[1, 0.5, 0.5, 0.5, 0.5, 0.25, 0.25, 0.25, 0.25, 0.25, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
+                ),
+                link=dict(
+                    source=source,
+                    target=target,
+                    value=value
+                )
+            )])
+
+            # Update the layout
+            fig.update_layout(title_text="Baseline",
+                              font_size=10,
+                              autosize=False,
+                              width=800,
+                              height=500)
+
+            fig1_b = fig
+
+            source = []
+            target = []
+            value = []
             adj_matx = [lb_anc, anc_anemia, anemia_comp, comp_health, expand_out]
             # adj_matx = [lb_anc, anc_anemia, anemia_comp]
             for z, matx in enumerate(adj_matx):
@@ -611,7 +650,7 @@ with (st.form('Test')):
             )])
 
             # Update the layout
-            fig.update_layout(title_text="Subset of Mothers' Health through Pregnancy, Labor, and Delivery",
+            fig.update_layout(title_text="Intervention",
                               font_size=10,
                               autosize=False,
                               width=800,
@@ -637,6 +676,45 @@ with (st.form('Test')):
             nodes = ['Mothers', 'Home (I)', 'L2/3 (I)', 'L4 (I)', 'L5 (I)', 'Home (F)', 'L2/3 (F)', 'L4 (F)', 'L5 (F)',
                      'Unhealthy', 'Healthy', 'Deaths at Home', 'Deaths at L2/3', 'Deaths at L4', 'Deaths at L5']
             sankey_dict = {x: i for i, x in enumerate(nodes)}
+
+            source = []
+            target = []
+            value = []
+            adj_matx = [b_m_lb, b_lb_lb, b_q_outcomes, expand_out]
+            for z, matx in enumerate(adj_matx):
+                for i in range(matx.shape[0]):
+                    for j in range(matx.shape[1]):
+                        source.append(sankey_dict[matx.index[i]])
+                        target.append(sankey_dict[matx.columns[j]])
+                        value.append(matx.iloc[i, j])
+
+                        # Define the nodes
+            # Create the Sankey diagram
+            fig = go.Figure(data=[go.Sankey(
+                arrangement='snap',
+                node=dict(
+                    pad=15,
+                    thickness=20,
+                    line=dict(color='black', width=0.5),
+                    label=nodes,
+                    x=[0, 1 / 4, 1 / 4, 1 / 4, 1 / 4, 1 / 2, 1 / 2, 1 / 2, 1 / 2, 3 / 4, 3 / 4, 1, 1, 1, 1],
+                    y=[1, 0, 0.25 * 1, 0.25 * 2, 0.25 * 3, 0, 0.25 * 1, 0.25 * 2, 0.25 * 3, 0, 0.5, 0.8, 0.8, 0.8, 0.8]
+                ),
+                link=dict(
+                    source=source,
+                    target=target,
+                    value=value
+                )
+            )])
+
+            # Update the layout
+            fig.update_layout(title_text="Baseline",
+                              font_size=10,
+                              autosize=False,
+                              width=800,
+                              height=500)
+
+            fig2_b = fig
 
             source = []
             target = []
@@ -669,7 +747,7 @@ with (st.form('Test')):
             )])
 
             # Update the layout
-            fig.update_layout(title_text="Mothers with Complications through Facilities",
+            fig.update_layout(title_text="Intervention",
                               font_size=10,
                               autosize=False,
                               width=800,
@@ -679,31 +757,46 @@ with (st.form('Test')):
             fig2 = fig
 
             ########################################################################################################################
-            col1, col2 = st.columns(2)
-            with col1:
-                st.plotly_chart(fig1)
-                st.caption(
-                    '*Note, relationships assumed based on literature values for factors not explicitly measured in the data, i.e. antenatal care and anemia.')
-                if np.array(b_lb_anc - lb_anc)[0][0] > 0:
-                    st.markdown(
-                        f'The intervention increased antenatal care by ~ **{round(np.array(b_lb_anc - lb_anc)[0][0])}%**.')
-                if np.sum(np.array(b_comp_health - comp_health)[:, 0]) > 0:
-                    st.markdown(
-                        f'The intervention reduced the number of deaths by ~ **{round(np.sum(np.array(b_comp_health - comp_health)[:, 0]))}**.')
+            tab1, tab2 = st.tabs(["Complication pathway", "Facility pathway"])
+            with tab1:
+                st.markdown("<h3 style='text-align: left;'>Subset of Mothers' Health through Pregnancy, Labor, and Delivery</h3>",
+                            unsafe_allow_html=True)
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.plotly_chart(fig1_b)
 
-            with col2:
-                st.plotly_chart(fig2)
-                st.caption(
-                    '*Note, relationships assumed based on literature values for factors not explicitly measured in the data, i.e. antenatal care and anemia.')
-                if np.sum(np.array(b_m_lb - m_lb)[0][2:4]) > 0:
-                    st.markdown(
-                        f'The intervention increased the number of live births at L4/5 facilities by ~ **{round(np.sum(np.array(b_m_lb - m_lb)[0][2:4]))}.**')
-                if np.sum(np.array(b_lb_lb - lb_lb)[0:2, 2:4]) < 0:
-                    st.markdown(
-                        f'The intervention reduced the number of transfers to L4/5 facilities by ~ **{-round(np.sum(np.array(b_lb_lb - lb_lb)[0:2, 2:4]))}.**')
-                if np.sum(np.array(b_q_outcomes - q_outcomes)[:, 0]) > 0:
-                    st.markdown(
-                        f'The intervention reduced the number of deaths by ~ **{round(np.sum(np.array(b_q_outcomes - q_outcomes)[:, 0]))}**.')
+                with col2:
+                    st.plotly_chart(fig1)
+                    st.caption(
+                        '*Note, relationships assumed based on literature values for factors not explicitly measured in the data, i.e. antenatal care and anemia.')
+                    if np.array(b_lb_anc - lb_anc)[0][0] > 0:
+                        st.markdown(
+                            f'The intervention increased antenatal care by ~ **{round(np.array(b_lb_anc - lb_anc)[0][0])}%**.')
+                    if np.sum(np.array(b_comp_health - comp_health)[:, 0]) > 0:
+                        st.markdown(
+                            f'The intervention reduced the number of deaths by ~ **{round(np.sum(np.array(b_comp_health - comp_health)[:, 0]))}**.')
+
+            with tab2:
+                st.markdown(
+                    "<h3 style='text-align: left;'>Mothers with Complications through Facilities</h3>",
+                    unsafe_allow_html=True)
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.plotly_chart(fig2_b)
+
+                with col2:
+                    st.plotly_chart(fig2)
+                    st.caption(
+                        '*Note, relationships assumed based on literature values for factors not explicitly measured in the data, i.e. antenatal care and anemia.')
+                    if np.sum(np.array(b_m_lb - m_lb)[0][2:4]) > 0:
+                        st.markdown(
+                            f'The intervention increased the number of live births at L4/5 facilities by ~ **{round(np.sum(np.array(b_m_lb - m_lb)[0][2:4]))}.**')
+                    if np.sum(np.array(b_lb_lb - lb_lb)[0:2, 2:4]) < 0:
+                        st.markdown(
+                            f'The intervention reduced the number of transfers to L4/5 facilities by ~ **{-round(np.sum(np.array(b_lb_lb - lb_lb)[0:2, 2:4]))}.**')
+                    if np.sum(np.array(b_q_outcomes - q_outcomes)[:, 0]) > 0:
+                        st.markdown(
+                            f'The intervention reduced the number of deaths by ~ **{round(np.sum(np.array(b_q_outcomes - q_outcomes)[:, 0]))}**.')
 
 
         if selected_plotA == "Live births":
