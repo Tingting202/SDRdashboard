@@ -126,6 +126,14 @@ with st.sidebar:
 
 st.subheader("SDR policy")
 SDR_int = st.checkbox('SDR interventions (both supply and demand)')
+if SDR_int:
+    flag_sdr = 1
+    CHV_pushback = 1
+    CHV_cov = 1
+    CHV_45 = 0.02
+    know_added = 0.2
+    supply_added = 0.2
+    capacity_added = 0.2
 col1, col2, col3 = st.columns(3)
 with col1:
     st.subheader("SDR demand")
@@ -201,15 +209,6 @@ with col3:
             with col3_2:
                 flag_int3 = 1
                 diagnosisrate = st.slider('Coverage at L2/3', min_value=0.0, max_value=1.0, step=0.1, value=0.5)
-
-if SDR_int:
-    flag_sdr = 1
-    CHV_pushback = 1
-    CHV_cov = 1
-    CHV_45 = 0.02
-    know_added = 0.2
-    supply_added = 0.2
-    capacity_added = 0.2
 
 global_vars = [ANCadded, CHV_pushback, CHV_cov, CHV_45, know_added, supply_added, capacity_added, transadded, referadded, ultracovhome, diagnosisrate]
 
@@ -335,6 +334,7 @@ with (st.form('Test')):
     if submitted:
         b_outcomes = run_model([0] * 12, b_flags, i_scenarios, sc, global_vars) #run_model([], b_flags)
         outcomes = run_model(SDR_subcounties, flags, i_scenarios, sc, global_vars) #run_model(SCID_selected, flags)
+        b_df_aggregate = get_aggregate(b_outcomes)
         df_aggregate = get_aggregate(outcomes)
         df_outcomes = outcomes.dropna().reset_index()
         df_b_outcomes = b_outcomes.dropna().reset_index()
@@ -528,6 +528,33 @@ with (st.form('Test')):
 
         if selected_plotA == "Pathways":
             import plotly.graph_objects as go
+
+            b_lb_anc = b_df_aggregate.loc[timepoint, 'LB-ANC']
+            b_anc_anemia = b_df_aggregate.loc[timepoint, 'ANC-Anemia']
+            b_anemia_comp = b_df_aggregate.loc[timepoint, 'Anemia-Complications'].T
+            b_comp_health = b_df_aggregate.loc[timepoint, 'Complications-Health']
+            b_lb_anc = b_lb_anc.reshape((1, 2))
+            b_lb_anc = pd.DataFrame(b_lb_anc, columns=['no ANC', 'ANC'], index=['Mothers'])
+            b_anc_anemia = pd.DataFrame(b_anc_anemia, columns=['no Anemia', 'Anemia'], index=['no ANC', 'ANC'])
+            b_anemia_comp = pd.DataFrame(b_anemia_comp,
+                                         columns=['PPH', 'Sepsis', 'Eclampsia', 'Obstructed Labor', 'Other'],
+                                         index=['no Anemia', 'Anemia'])
+            b_comp_health = pd.DataFrame(b_comp_health, columns=['Unhealthy', 'Healthy'],
+                                         index=['PPH', 'Sepsis', 'Eclampsia', 'Obstructed Labor', 'Other'])
+
+            b_anc_anemia = b_anc_anemia.div(b_anc_anemia.sum(axis=0), axis=1) * np.array(b_anemia_comp.sum(axis=1))
+            b_lb_anc.iloc[:, :] = np.array(b_anc_anemia.sum(axis=1))
+
+            b_m_lb = np.round(b_df_aggregate.loc[timepoint, 'Facility Level-Complications Pre'].astype(float),
+                              decimals=0).reshape(1, 4)
+            b_lb_lb = np.round(b_df_aggregate.loc[timepoint, 'Complications-Complications'].astype(float), decimals=0)
+            b_q_outcomes = np.round(b_df_aggregate.loc[timepoint, 'Facility Level-Health'].astype(float), decimals=0)
+            b_m_lb = pd.DataFrame(b_m_lb, columns=['Home (I)', 'L2/3 (I)', 'L4 (I)', 'L5 (I)'], index=['Mothers'])
+            b_lb_lb = pd.DataFrame(b_lb_lb, columns=['Home (F)', 'L2/3 (F)', 'L4 (F)', 'L5 (F)'],
+                                   index=['Home (I)', 'L2/3 (I)', 'L4 (I)', 'L5 (I)'])
+            b_q_outcomes = pd.DataFrame(b_q_outcomes, columns=['Unhealthy', 'Healthy'],
+                                        index=['Home (F)', 'L2/3 (F)', 'L4 (F)', 'L5 (F)'])
+
             lb_anc = df_aggregate.loc[timepoint, 'LB-ANC']
             anc_anemia = df_aggregate.loc[timepoint, 'ANC-Anemia']
             anemia_comp = df_aggregate.loc[timepoint, 'Anemia-Complications'].T
@@ -590,7 +617,9 @@ with (st.form('Test')):
                               height=500)
 
             # Show the plot
-            st.plotly_chart(fig)
+            fig1 = fig
+
+            ########################################################################################################################
 
             m_lb = np.round(df_aggregate.loc[timepoint, 'Facility Level-Complications Pre'].astype(float),
                             decimals=0).reshape(1, 4)
@@ -619,9 +648,7 @@ with (st.form('Test')):
                         target.append(sankey_dict[matx.columns[j]])
                         value.append(matx.iloc[i, j])
 
-            import plotly.graph_objects as go
-
-            # Define the nodes
+                        # Define the nodes
             # Create the Sankey diagram
             fig = go.Figure(data=[go.Sankey(
                 arrangement='snap',
@@ -648,7 +675,34 @@ with (st.form('Test')):
                               height=500)
 
             # Show the plot
-            st.plotly_chart(fig)
+            fig2 = fig
+
+            ########################################################################################################################
+            col1, col2 = st.columns(2)
+            with col1:
+                st.plotly_chart(fig1)
+                st.caption(
+                    '*Note, relationships assumed based on literature values for factors not explicitly measured in the data, i.e. antenatal care and anemia.')
+                if np.array(b_lb_anc - lb_anc)[0][0] > 0:
+                    st.markdown(
+                        f'The intervention increased antenatal care by ~ **{round(np.array(b_lb_anc - lb_anc)[0][0])}%**.')
+                if np.sum(np.array(b_comp_health - comp_health)[:, 0]) > 0:
+                    st.markdown(
+                        f'The intervention reduced the number of deaths by ~ **{round(np.sum(np.array(b_comp_health - comp_health)[:, 0]))}**.')
+
+            with col2:
+                st.plotly_chart(fig2)
+                st.caption(
+                    '*Note, relationships assumed based on literature values for factors not explicitly measured in the data, i.e. antenatal care and anemia.')
+                if np.sum(np.array(b_m_lb - m_lb)[0][2:4]) > 0:
+                    st.markdown(
+                        f'The intervention increased the number of live births at L4/5 facilities by ~ **{round(np.sum(np.array(b_m_lb - m_lb)[0][2:4]))}.**')
+                if np.sum(np.array(b_lb_lb - lb_lb)[0:2, 2:4]) < 0:
+                    st.markdown(
+                        f'The intervention reduced the number of transfers to L4/5 facilities by ~ **{-round(np.sum(np.array(b_lb_lb - lb_lb)[0:2, 2:4]))}.**')
+                if np.sum(np.array(b_q_outcomes - q_outcomes)[:, 0]) > 0:
+                    st.markdown(
+                        f'The intervention reduced the number of deaths by ~ **{round(np.sum(np.array(b_q_outcomes - q_outcomes)[:, 0]))}**.')
 
 
         if selected_plotA == "Live births":
