@@ -41,7 +41,7 @@ ultracovhome = 0
 CHV_cov = 0
 CHV_45 = 0
 CHV_ANC = 0
-CHV_pushback = 0
+CHV_pushback = False
 referadded = 0
 transadded = 0
 capacity_added = 0
@@ -83,6 +83,21 @@ SC_ID = {
     11: "Shinyalu"
 }
 
+# SC_facilities = { #2, 3, 4, 5
+#     0: [17, 12, 3, 0],
+#     1: [22, 5, 2, 0],
+#     2: [12, 17, 2, 0],
+#     3: [29, 4, 2, 0],
+#     4: [36, 3, 2, 0],
+#     5: [48, 7, 0, 1],
+#     6: [32, 6, 1, 0],
+#     7: [19, 8, 1, 0],
+#     8: [17, 4, 1, 0],
+#     9: [19, 5, 2, 0],
+#     10: [19, 4, 1, 0],
+#
+# }
+
 ### Side bar ###
 with st.sidebar:
     st.header("Outcomes sidebar")
@@ -122,96 +137,136 @@ with st.sidebar:
         )
         month = st.slider("Which month to show the outcome?",  min_value=1, max_value=35, step=1, value=35)
 
-    SC_options = subcounties
-    select_SCs = st.multiselect('Select subcounties to implement SDR policy:', SC_options)
-    SCID_selected = [key for key, value in SC_ID.items() if value in select_SCs]
-    SDR_subcounties = [1 if i in SCID_selected else 0 for i in range(12)]
+    select_SCs1 = st.selectbox('Implement SDR policy to all subcounties or part of them?', ['All subcounties', 'Part of subcounties'])
+    if select_SCs1 == 'All subcounties':
+        SDR_subcounties = [1] * 12
+    else:
+        SC_options = subcounties
+        select_SCs = st.multiselect('Select subcounties:', SC_options)
+        SCID_selected = [key for key, value in SC_ID.items() if value in select_SCs]
+        SDR_subcounties = [1 if i in SCID_selected else 0 for i in range(12)]
 
-st.subheader("SDR policy")
-SDR_int = st.checkbox('SDR interventions (both supply and demand)')
-if SDR_int:
-    flag_sdr = 1
-    CHV_pushback = 1
-    CHV_cov = 1
-    CHV_45 = 0.02
-    know_added = 0.2
-    supply_added = 0.2
-    capacity_added = 0.2
+# st.subheader("SDR policy")
+# SDR_int = st.checkbox('SDR interventions (both supply and demand)')
+# if SDR_int:
+#     flag_sdr = 1
+#     CHV_pushback = True
+#     CHV_cov = 1
+#     CHV_45 = 0.02
+#     know_added = 0.2
+#     supply_added = 0.2
+#     capacity_added = 0.2
 col1, col2, col3 = st.columns(3)
 with col1:
     st.subheader("SDR demand")
-    demand_options = ("Test the impacts", "Apply interventions")
-    select_demand = st.selectbox('Increase deliveries at L4/5:', demand_options)
-    if select_demand == "Test the impacts":
-        flag_ANC = 1
-        col1_1, col1_2 = st.columns(2)
-        with col1_1:
-            ANCadded = st.slider('Increased 4+ANCs rate', min_value=0.0, max_value=1.0, step=0.1, value=0.2)
-        com_int = st.checkbox('Community effect')
-        if com_int:
-            flag_community = 1
-
-    if select_demand == "Apply interventions":
+    col1_1, col1_2 = st.columns(2)
+    with col1_1:
+        st.text('Apply interventions')
+        anc_int = st.checkbox('Increase ANC')
+    with col1_2:
+        st.text('Adjust parameters')
+        if anc_int:
+            flag_ANC = 1
+            ANCadded = st.slider('Increased 4+ANCs rate', min_value=0.0, max_value=2.0, step=0.1, value=0.2)
+    st.markdown("---")
+    col1_3, col1_4 = st.columns(2)
+    with col1_3:
         CHVint = st.checkbox('Employ CHVs at communities')
+    with col1_4:
         if CHVint:
             flag_CHV = 1
-            col1_1, col1_2 = st.columns(2)
-            with col1_1:
-                CHV_cov = st.slider("CHV Coverage", min_value=0.0, max_value=1.0, step=0.1, value=0.5)
-                CHV_pushback = st.checkbox('Pushback effect')
-            with col1_2:
-                CHV_45 = st.slider("CHV effect on delivery at L4/5", min_value=0.00, max_value=0.10, step=0.01,
-                                   value=0.02)
-
+            CHV_cov = st.slider("CHV Coverage", min_value=0.0, max_value=1.0, step=0.1, value=0.5)
+            CHV_45 = st.slider("CHV effect on delivery at L4/5", min_value=0.00, max_value=0.10, step=0.01, value=0.02)
+            CHV_pushback = st.checkbox('CHV pushback?')
+    st.markdown("---")
+    col1_5, col1_6 = st.columns(2)
+    with col1_5:
+        com_int = st.checkbox('Community effect')
+    with col1_6:
+        if com_int:
+            flag_community = 1
 with col2:
     st.subheader("SDR supply")
-    supply_options = ("Test the impacts", "Apply interventions")
-    select_facility = st.selectbox('Improve health facility system:', supply_options)
-    if select_facility == "Test the impacts":
-        flag_sdr = 1
-        col2_1, col2_2 = st.columns(2)
-        with col2_1:
-            QOC_b = st.slider("Improve quality of care", min_value=0.0, max_value=1.0, step=0.1, value=0.2)
-            know_added = QOC_b
-            supply_added = QOC_b
-        with col2_2:
-            Cap_b = st.slider("Improve capacity", min_value=0.0, max_value=1.0, step=0.1, value=0.2)
-            capacity_added = Cap_b
-
-    if select_facility == "Apply interventions":
-        flag_sdr = 1
-        col2_1, col2_2 = st.columns(2)
-        with col2_1:
-            st.text('Treatments')
-            flag_int2 = st.checkbox('IV iron infusion for anemia')
-            flag_int5 = st.checkbox('MgSO4 for eclampsia')
-            flag_in6 = st.checkbox('Antibiotics for maternal sepsis')
-            flag_int1 = st.checkbox('Obstetric drape for pph')
-        with col2_2:
-            know_added = st.slider("Improve knowledge of facility health workers", min_value=0.0, max_value=1.0, step=0.1, value=0.2)
-            supply_added = st.slider("Improve supplies of treatments", min_value=0.0, max_value=1.0, step=0.1, value=0.2)
-            capacity_added = st.slider("Improve capacities of facilities", min_value=0.0, max_value=1.0, step=0.1, value=0.2)
+    # supply_options = ("Test the impacts", "Apply interventions")
+    # select_facility = st.selectbox('Improve health facility system:', supply_options)
+    # if select_facility == "Test the impacts":
+    #     col2_1, col2_2 = st.columns(2)
+    #     with col2_1:
+    #         QOC_b = st.slider("Improve quality of care", min_value=0.0, max_value=1.0, step=0.1, value=0.2)
+    #         know_added = QOC_b
+    #         supply_added = QOC_b
+    #     with col2_2:
+    #         Cap_b = st.slider("Improve capacity", min_value=0.0, max_value=1.0, step=0.1, value=0.2)
+    #         capacity_added = Cap_b
+    # if select_facility == "Apply interventions":
+    col2_1, col2_2 = st.columns(2)
+    with col2_1:
+        st.text('Apply interventions')
+        int2 = st.checkbox('IV iron infusion for anemia')
+        int5 = st.checkbox('MgSO4 for eclampsia')
+        int6 = st.checkbox('Antibiotics for maternal sepsis')
+        int1 = st.checkbox('Obstetric drape for pph')
+        if int2:
+            flag_int2 = 1
+        if int5:
+            flag_int5 = 1
+        if int6:
+            flag_int6 = 1
+        if int1:
+            flag_int1 = 1
+    with col2_2:
+        st.text('Adjust parameters')
+        if int2 or int5 or int6 or int1:
+            supply_added = st.slider("Improved % coverage", min_value=0.0, max_value=1.0, step=0.1,
+                                     value=0.2)
+    st.markdown("---")
+    col2_3, col2_4 = st.columns(2)
+    with col2_3:
+        intknow = st.checkbox('Improve knowledge of healthcare workers')
+    with col2_4:
+        if intknow:
+            know_added = st.slider("Improved % knowledge", min_value=0.0, max_value=1.0,
+                                   step=0.1, value=0.2)
+    st.markdown("---")
+    col2_5, col2_6 = st.columns(2)
+    with col2_5:
+        intcapacity = st.checkbox('Improve capacities of facilities')
+    with col2_6:
+        if intcapacity:
+            capacity_added = st.slider("Improve capacities of facilities", min_value=0.0, max_value=1.0, step=0.1,
+                                       value=0.2)
 with col3:
     st.subheader("SDR referral")
-    referral_options = ("Test the impacts", "Apply interventions")
-    select_referral = st.selectbox('Test referral/rescue system:', referral_options)
-    if select_referral == "Test the impacts":
-        col3_1, col3_2 = st.columns(2)
-        with col3_1:
-            flag_trans = 1
-            transadded = st.slider('% transfer increased', min_value=0.0, max_value=1.0, step=0.1, value=0.5)
-        with col3_2:
+    # referral_options = ("Test the impacts", "Apply interventions")
+    # select_referral = st.selectbox('Test referral/rescue system:', referral_options)
+    # if select_referral == "Test the impacts":
+    col3_1, col3_2 = st.columns(2)
+    with col3_1:
+        st.text('Apply interventions')
+        referint = st.checkbox('Increase referral')
+    with col3_2:
+        st.text('Adjust parameters')
+    # if select_referral == "Apply interventions":
+        if referint:
             flag_refer = 1
             referadded = st.slider('% referral increased', min_value=0.0, max_value=1.0, step=0.1, value=0.5)
-    if select_referral == "Apply interventions":
+    st.markdown("---")
+    col3_3, col3_4 = st.columns(2)
+    with col3_3:
+        transint = st.checkbox('Increase transfer')
+    with col3_4:
+        if transint:
+            flag_trans = 1
+            transadded = st.slider('% transfer increased', min_value=0.0, max_value=1.0, step=0.1, value=0.5)
+    st.markdown("---")
+    col3_5, col3_6 = st.columns(2)
+    with col3_5:
         int3 = st.checkbox('Employ portable ultrasounds')
+    with col3_6:
         if int3:
-            col3_1, col3_2 = st.columns(2)
-            with col3_1:
-                ultracovhome = st.slider('Coverage at communities', min_value=0.0, max_value=1.0, step=0.1, value=0.5)
-            with col3_2:
-                flag_int3 = 1
-                diagnosisrate = st.slider('Coverage at L2/3', min_value=0.0, max_value=1.0, step=0.1, value=0.5)
+            flag_int3 = 1
+            ultracovhome = st.slider('Coverage at communities', min_value=0.0, max_value=1.0, step=0.1, value=0.5)
+            diagnosisrate = st.slider('Coverage at L2/3', min_value=0.0, max_value=1.0, step=0.1, value=0.5)
 
 global_vars = [ANCadded, CHV_pushback, CHV_cov, CHV_45, know_added, supply_added, capacity_added, transadded, referadded, ultracovhome, diagnosisrate]
 
@@ -286,6 +341,8 @@ with (st.form('Test')):
         [2184, 1853, 1579, 114],
         [2494, 1805, 1851, 124]
     ]
+
+    total_LB = np.sum(sc_LB)
 
     sc_ANC = [
         0.5279693809,
@@ -575,6 +632,7 @@ with (st.form('Test')):
                                       knowledge])  # np.array([((1+effect) * k) for k in knowledge])
                     suppl = np.array([max((1 + supply_added) * s, 1) for s in
                                       supplies])  # np.array([((1+effect) * s) for s in supplies])
+                    flag_ANC = 1
                     flag_CHV = 1
                     flag_int1 = 1
                     flag_int2 = 1
@@ -668,6 +726,17 @@ with (st.form('Test')):
         b_DALYs = DALYs[0] * low_pph * 62.63 + DALYs[1] * high_pph * 62.63 + DALYs[2] * maternal_deaths * 62.63
 
         cost = 0
+        anc_cost = 0
+        delivery_cost = 0
+        c_section_cost = 0
+        labor_cost = 0
+        equipment_cost = 0
+        medication_cost = 0
+        access_cost = 0
+        infrastructure_cost = 0
+        chv_cost = 0
+        pctaddanc = 0
+        pctaddfac_deliveries = 0
 
         low_pph = np.sum(df_aggregate.loc[timepoint, 'Complications-Health'], axis=1)[0] * \
                   np.array([1 - p_severe, p_severe])[0]
@@ -677,20 +746,66 @@ with (st.form('Test')):
         i_DALYs = DALYs[0] * low_pph * 62.63 + DALYs[1] * high_pph * 62.63 + DALYs[2] * maternal_deaths * 62.63
 
         DALYs_averted = b_DALYs - i_DALYs
-        if flag_sdr:
-            cost += 2904051
-        if flag_int1:
-            cost += 1 * (low_pph + high_pph)
-        if flag_int2:
-            cost += 2.26 * 0.555 * np.sum(df_aggregate.loc[timepoint, 'Live Births Final']) * supply_added
-        if flag_int5:
-            eclampsia = np.sum(df_aggregate.loc[timepoint, 'Complications-Health'], axis=1)[2] * supply_added
-            cost += 3 * eclampsia
-        if flag_int6:
-            sepsis = np.sum(df_aggregate.loc[timepoint, 'Complications-Health'], axis=1)[1] * supply_added
-            cost += 12.30 * sepsis
+        if flag_CHV or flag_sdr:
+            b_fac_deliveries = total_LB - b_df_aggregate.loc[11, 'Live Births Final'][0]
+            fac_deliveries = total_LB - df_aggregate.loc[11, 'Live Births Final'][0]
+            addfac_deliveries1 = fac_deliveries - b_fac_deliveries
+            addCsections1 = addfac_deliveries1 * 0.098
 
-        return cost, DALYs_averted
+            b_fac_deliveries = total_LB - b_df_aggregate.loc[23, 'Live Births Final'][0]
+            fac_deliveries = total_LB - df_aggregate.loc[23, 'Live Births Final'][0]
+            addfac_deliveries2 = fac_deliveries - b_fac_deliveries
+            addCsections2 = addfac_deliveries2 * 0.098
+
+            b_fac_deliveries = total_LB - b_df_aggregate.loc[35, 'Live Births Final'][0]
+            fac_deliveries = total_LB - df_aggregate.loc[35, 'Live Births Final'][0]
+            addfac_deliveries3 = fac_deliveries - b_fac_deliveries
+            addCsections3 = addfac_deliveries3 * 0.098
+
+            pctaddfac_deliveries = addfac_deliveries3 / total_LB * 100
+
+            delivery_cost = 6148 / 110 * (addfac_deliveries1 * (1 + 0.03) + addfac_deliveries2 * (1 + 0.03)**2 + addfac_deliveries3 * (1 + 0.03)**3)
+            c_section_cost = 29804 / 110 * (addCsections1 * (1 + 0.03) + addCsections2 * (1 + 0.03)**2 + addCsections3 * (1 + 0.03)**3)
+            equipment_cost = 39984826 / 110 * pctaddfac_deliveries / 15
+            labor_cost = 370785580 / 110 * (addfac_deliveries1 + addfac_deliveries2 + addfac_deliveries3) / total_LB * 100 / 15
+            infrastructure_cost = 136600000 / 110 * pctaddfac_deliveries / 15
+            chv_cost = (1974 * 420  + 1974 * 2 * 3 * 33) / 110 * sum(SDR_subcounties) * CHV_cov + 100 / 110 * (addfac_deliveries1 + addfac_deliveries2 + addfac_deliveries3)
+
+        if flag_ANC or flag_sdr:
+            b_anc = b_df_aggregate.loc[11, 'LB-ANC'][1]
+            anc = df_aggregate.loc[11, 'LB-ANC'][1]
+            addanc1 = anc - b_anc
+            b_anc = b_df_aggregate.loc[23, 'LB-ANC'][1]
+            anc = df_aggregate.loc[23, 'LB-ANC'][1]
+            addanc2 = anc - b_anc
+            b_anc = b_df_aggregate.loc[35, 'LB-ANC'][1]
+            anc = df_aggregate.loc[35, 'LB-ANC'][1]
+            addanc3 = anc - b_anc
+            pctaddanc = addanc3 / total_LB * 100
+
+            anc_cost += 288 / 110 * (addanc1 * (1 + 0.03) + addanc2 * (1 + 0.03)**2 + addanc3 * (1 + 0.03)**3)
+            equipment_cost = max(39984826 / 110 * pctaddanc / 10, equipment_cost)
+
+        if flag_int1 or flag_sdr:
+            #cost += 1 * (low_pph + high_pph)
+            pph = (low_pph + high_pph) * supply_added
+            medication_cost += 1 * pph
+
+        if flag_int2 or flag_sdr:
+            anemia = 0.555 * np.sum(df_aggregate.loc[timepoint, 'Live Births Final']) * supply_added
+            medication_cost += 2.26 * anemia
+
+        if flag_int5 or flag_sdr:
+            eclampsia = np.sum(df_aggregate.loc[timepoint, 'Complications-Health'], axis=1)[2] * supply_added
+            medication_cost += 3 * eclampsia
+
+        if flag_int6 or flag_sdr:
+            sepsis = np.sum(df_aggregate.loc[timepoint, 'Complications-Health'], axis=1)[1] * supply_added
+            medication_cost += 12.30 * sepsis
+
+        cost = anc_cost + medication_cost + equipment_cost + delivery_cost + c_section_cost + labor_cost + infrastructure_cost + chv_cost
+
+        return cost, anc_cost, medication_cost, equipment_cost, delivery_cost, c_section_cost, labor_cost, infrastructure_cost, chv_cost, pctaddanc, pctaddfac_deliveries, DALYs_averted
 
 
     def run_model(subcounty, flags, global_vars):
@@ -1358,6 +1473,121 @@ with (st.form('Test')):
                         st.markdown(
                             f'The intervention reduced the number of deaths by ~ **{round(np.sum(np.array(b_q_outcomes - q_outcomes)[:, 0]))}**.')
 
+        if selected_plotA == "Cost effectiveness":
+            st.markdown("<h3 style='text-align: left;'>Cost effectiveness</h3>",
+                        unsafe_allow_html=True)
+            st.text('Select the SDR interventions to compare cost-effectiveness (Note: Please adjust intervention parameters using above sliders)')
+            ce_anc = st.checkbox('Demand: Increase Antenatal Care')
+            st.text('(Please turn on ANC intervention and adjust ANC parameter)')
+            ce_fac = st.checkbox('Demand: Increase Facility Delivery')
+            st.text('(Please turn on CHV intervention and adjust CHV parameters)')
+            ce_int1 = st.checkbox('Supply: Obstetric drape for pph')
+            st.text('(Please turn on Obstetric drape and adjust coverage parameter)')
+            ce_int3 = st.checkbox('Supply: MgSO4 for elampsia')
+            st.text('(Please turn on MgSO4 and adjust coverage parameter)')
+            ce_int4 = st.checkbox('Supply: Antibiotics for maternal sepsis')
+            st.text('(Please turn on Antibiotics and adjust coverage parameter)')
+            ce_intsdr = st.checkbox('All SDR interventions')
+            st.text('(Please turon on all interventions above and adjust related parameters)')
+            # global_vars = [ANCadded, CHV_pushback, CHV_cov, CHV_45,
+            # know_added, supply_added, capacity_added,
+            # transadded, referadded, ultracovhome, diagnosisrate]
+
+            b_df = run_model([0] * 12, np.zeros(13), global_vars)
+            b_df_aggregate = get_aggregate(b_df)
+            #cost, anc_cost, medication_cost, equipment_cost, delivery_cost, c_section_cost, labor_cost, infrastructure_cost, chv_cost, pctaddanc, pctaddfac_deliveries, DALYs_averted
+
+            if ce_int1:
+                base_flag = np.zeros(13)
+                base_flag[sc_intervention['Obstetric Drape']] = 1
+                intervention1 = base_flag
+                global_vars = [0, False, 0, 0, 0, supply_added, 0, 0, 0, 0, 0]
+                df = run_model(SDR_subcounties, intervention1, global_vars)
+                df1_aggregate = get_aggregate(df)
+                ce_obstetric_drape = get_cost_effectiveness(intervention1, 35, df1_aggregate, b_df_aggregate,
+                                                            global_vars)
+            else:
+                ce_obstetric_drape = [0] * 12
+
+            if ce_int3:
+                base_flag = np.zeros(13)
+                base_flag[sc_intervention['Magnesium Sulfate']] = 1
+                intervention3 = base_flag
+                global_vars = [0, False, 0, 0, 0, supply_added, 0, 0, 0, 0, 0]
+                df3 = run_model(SDR_subcounties, intervention3, global_vars)
+                df3_aggregate = get_aggregate(df3)
+                ce_mgso4 = get_cost_effectiveness(intervention3, 35, df3_aggregate, b_df_aggregate, global_vars)
+            else:
+                ce_mgso4 = [0] * 12
+
+            if ce_int4:
+                base_flag = np.zeros(13)
+                base_flag[sc_intervention['Antibiotics for Sepsis']] = 1
+                intervention4 = base_flag
+                global_vars = [0, False, 0, 0, 0, supply_added, 0, 0, 0, 0, 0]
+                df4 = run_model(SDR_subcounties, intervention4, global_vars)
+                df4_aggregate = get_aggregate(df4)
+                ce_sepsis = get_cost_effectiveness(intervention4, 35, df4_aggregate, b_df_aggregate, global_vars)
+            else:
+                ce_sepsis = [0] * 12
+
+            if ce_intsdr:
+                base_flag = np.zeros(13)
+                base_flag[sc_intervention['SDR']] = 1
+                sdr_intervention = base_flag
+                global_vars = [ANCadded, False, CHV_cov, CHV_45, know_added, supply_added, capacity_added, 0, 0, 0, 0]
+                df_sdr = run_model(SDR_subcounties, sdr_intervention, global_vars)
+                df_sdr_aggregate = get_aggregate(df_sdr)
+                ce_sdr = get_cost_effectiveness(sdr_intervention, 35, df_sdr_aggregate, b_df_aggregate, global_vars)
+            else:
+                ce_sdr = [0] * 12
+
+            if ce_anc:
+                base_flag = np.zeros(13)
+                base_flag[sc_intervention['Antenatal Care']] = 1
+                anc_intervention = base_flag
+                global_vars = [ANCadded, False, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+                df_anc = run_model(SDR_subcounties, anc_intervention, global_vars)
+                df_anc_aggregate = get_aggregate(df_anc)
+                ce_anc = get_cost_effectiveness(anc_intervention, 35, df_anc_aggregate, b_df_aggregate, global_vars)
+            else:
+                ce_anc = [0] * 12
+
+            if ce_fac:
+                base_flag = np.zeros(13)
+                base_flag[sc_intervention['Community Health Workers']] = 1
+                fac_intervention = base_flag
+                global_vars = [0, False, CHV_cov, CHV_45, 0, 0, 0, 0, 0, 0, 0]
+                df_fac = run_model(SDR_subcounties, fac_intervention, global_vars)
+                df_fac_aggregate = get_aggregate(df_fac)
+                ce_fac = get_cost_effectiveness(fac_intervention, 35, df_fac_aggregate, b_df_aggregate, global_vars)
+            else:
+                ce_fac = [0] * 12
+
+            df_ce = pd.DataFrame({
+                'Obstetric Drape': ce_obstetric_drape,
+                'MgSO4': ce_mgso4,
+                'Antibiotics for Sepsis': ce_sepsis,
+                'Increase ANC': ce_anc,
+                'Increase Facility Deliveries': ce_fac,
+                'SDR': ce_sdr
+            }).T
+            df_ce.columns = ['Cost (USD)', 'ANC Cost', 'Medication Cost', 'Equipment Cost',
+                             'Delivery Cost', 'C-section Cost', 'Labor Cost', 'Infrastructure Cost',
+                             'CHV Cost', 'Added ANC (%)', 'Added facility deliveries (%)', 'DALY averted']
+            ##cost, anc_cost, medication_cost, equipment_cost, delivery_cost, c_section_cost, labor_cost, infrastructure_cost, chv_cost, pctaddanc, pctaddfac_deliveries, DALYs_averted
+            df_ce['Cost per DALY averted'] = df_ce['Cost (USD)'] / df_ce['DALY averted']
+            #df_ce = df_ce.applymap(lambda x: round(x, 0))
+            df_ce.iloc[:, :-1] = df_ce.iloc[:, :-1].round(0)
+            df_ce.iloc[:, -1] = df_ce.iloc[:, -1].round(1)
+            df_ce = df_ce.dropna()
+            tab1, tab2, tab3 = st.tabs(['Table', 'Pie chart', 'Bar chart'])
+            with tab1:
+                df_ce
+            with tab2:
+                None
+            with tab3:
+                None
 
         if selected_plotA == "Live births":
             st.markdown("<h3 style='text-align: left;'>Live births</h3>",
@@ -1491,56 +1721,6 @@ with (st.form('Test')):
                 chart = barplots(df, "MMR", "MMR")
 
                 st.altair_chart(chart)
-
-        if selected_plotA == "Cost effectiveness":
-            base_flag = np.zeros(13)
-            base_flag[sc_intervention['Obstetric Drape']] = 1
-            intervention1 = base_flag
-
-            base_flag = np.zeros(13)
-            base_flag[sc_intervention['Antenatal Corticosteroids']] = 1
-            intervention2 = base_flag
-
-            base_flag = np.zeros(13)
-            base_flag[sc_intervention['Magnesium Sulfate']] = 1
-            intervention3 = base_flag
-
-            base_flag = np.zeros(13)
-            base_flag[sc_intervention['Antibiotics for Sepsis']] = 1
-            intervention4 = base_flag
-
-            base_flag = np.zeros(13)
-            base_flag[sc_intervention['SDR']] = 1
-            sdr_intervention = base_flag
-
-            b_df = run_model([0]*12, np.zeros(13), global_vars)
-            df = run_model(SDR_subcounties, intervention1, global_vars)
-            df2 = run_model(SDR_subcounties, intervention2, global_vars)
-            df3 = run_model(SDR_subcounties, intervention3, global_vars)
-            df4 = run_model(SDR_subcounties, intervention4, global_vars)
-            df_sdr = run_model(SDR_subcounties, sdr_intervention, global_vars)
-            b_df_aggregate = get_aggregate(b_df)
-            df1_aggregate = get_aggregate(df)
-            df2_aggregate = get_aggregate(df2)
-            df3_aggregate = get_aggregate(df3)
-            df4_aggregate = get_aggregate(df4)
-            df_sdr_aggregate = get_aggregate(df_sdr)
-
-            ce_obstetric_drape = get_cost_effectiveness(intervention1, 35, df1_aggregate, b_df_aggregate, global_vars)
-            ce_mgso4 = get_cost_effectiveness(intervention3, 35, df3_aggregate, b_df_aggregate, global_vars)
-            ce_sepsis = get_cost_effectiveness(intervention4, 35, df4_aggregate, b_df_aggregate, global_vars)
-            ce_sdr = get_cost_effectiveness(sdr_intervention, 35, df_sdr_aggregate, b_df_aggregate, global_vars)
-
-            df_ce = pd.DataFrame({
-                'Obstetric Drape': ce_obstetric_drape,
-                'MgSO4': ce_mgso4,
-                'Antibiotics for Sepsis': ce_sepsis,
-                'SDR': ce_sdr
-            }).T
-            df_ce.columns = ['Cost (USD)', 'DALY averted']
-            df_ce['Cost per DALY averted'] = df_ce['Cost (USD)'] / df_ce['DALY averted']
-            df_ce = df_ce.applymap(lambda x: round(x, 2))
-            df_ce
 
         def creatsubcountydf(df0, cols, colrange):
             df = pd.DataFrame(df0)
