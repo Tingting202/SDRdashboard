@@ -1289,7 +1289,7 @@ with (st.form('Test')):
             fig.update_layout(title_text="Baseline",
                               font_size=10,
                               autosize=False,
-                              width=800,
+                              width=600,
                               height=500)
 
             fig1_b = fig
@@ -1328,7 +1328,7 @@ with (st.form('Test')):
             fig.update_layout(title_text="Intervention",
                               font_size=10,
                               autosize=False,
-                              width=800,
+                              width=600,
                               height=500)
 
             # Show the plot
@@ -1386,7 +1386,7 @@ with (st.form('Test')):
             fig.update_layout(title_text="Baseline",
                               font_size=10,
                               autosize=False,
-                              width=800,
+                              width=600,
                               height=500)
 
             fig2_b = fig
@@ -1425,7 +1425,7 @@ with (st.form('Test')):
             fig.update_layout(title_text="Intervention",
                               font_size=10,
                               autosize=False,
-                              width=800,
+                              width=600,
                               height=500)
 
             # Show the plot
