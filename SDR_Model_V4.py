@@ -101,7 +101,9 @@ SC_ID = {
 ### Side bar ###
 with st.sidebar:
     st.header("Outcomes sidebar")
-    level_options = ("County", "Subcounty", "Subcounty in Map")
+    level_options = ("County", "Subcounty"
+                     #, "Subcounty in Map"
+                     )
     select_level = st.selectbox('Select level of interest:', level_options)
     if select_level == "County":
         plotA_options = ("Pathways","Live births",
@@ -139,6 +141,8 @@ with st.sidebar:
 
     select_SCs1 = st.selectbox('Implement SDR policy to all subcounties or part of them?', ['All subcounties', 'Part of subcounties'])
     if select_SCs1 == 'All subcounties':
+        select_SCs = subcounties
+        SCID_selected = [key for key, value in SC_ID.items() if value in select_SCs]
         SDR_subcounties = [1] * 12
     else:
         SC_options = subcounties
@@ -1478,17 +1482,17 @@ with (st.form('Test')):
                         unsafe_allow_html=True)
             st.text('Select the SDR interventions to compare cost-effectiveness (Note: Please adjust intervention parameters using above sliders)')
             ce_anc = st.checkbox('Demand: Increase Antenatal Care')
-            st.text('(Please turn on ANC intervention and adjust ANC parameter)')
+            #st.text('(Please turn on ANC intervention and adjust ANC parameter)')
             ce_fac = st.checkbox('Demand: Increase Facility Delivery')
-            st.text('(Please turn on CHV intervention and adjust CHV parameters)')
+            #st.text('(Please turn on CHV intervention and adjust CHV parameters)')
             ce_int1 = st.checkbox('Supply: Obstetric drape for pph')
-            st.text('(Please turn on Obstetric drape and adjust coverage parameter)')
+            #st.text('(Please turn on Obstetric drape and adjust coverage parameter)')
             ce_int3 = st.checkbox('Supply: MgSO4 for elampsia')
-            st.text('(Please turn on MgSO4 and adjust coverage parameter)')
+            #st.text('(Please turn on MgSO4 and adjust coverage parameter)')
             ce_int4 = st.checkbox('Supply: Antibiotics for maternal sepsis')
-            st.text('(Please turn on Antibiotics and adjust coverage parameter)')
+            #st.text('(Please turn on Antibiotics and adjust coverage parameter)')
             ce_intsdr = st.checkbox('All SDR interventions')
-            st.text('(Please turon on all interventions above and adjust related parameters)')
+            #st.text('(Please turon on all interventions above and adjust related parameters)')
             # global_vars = [ANCadded, CHV_pushback, CHV_cov, CHV_45,
             # know_added, supply_added, capacity_added,
             # transadded, referadded, ultracovhome, diagnosisrate]
@@ -1585,9 +1589,43 @@ with (st.form('Test')):
             with tab1:
                 df_ce
             with tab2:
-                None
+                st.markdown("<h3 style='text-align: left;'>Cost distributions under different scenarios</h3>",
+                            unsafe_allow_html=True)
+                df_cost = df_ce[['ANC Cost', 'Medication Cost', 'Equipment Cost',
+                                 'Delivery Cost', 'C-section Cost', 'Labor Cost', 'Infrastructure Cost',
+                                 'CHV Cost']]
+
+                scenarios = df_cost.index.tolist()
+                num_rows, num_cols = 2, 3
+                plot_columns = [st.columns(num_cols) for _ in range(num_rows)]
+                for j in range(len(scenarios)):
+                    df = df_cost.iloc[[j]].melt(var_name='type', value_name='value')
+                    df['Percentage'] = (df['value'] / df['value'].sum()) * 100
+                    chart = (
+                        alt.Chart(
+                            data=df,
+                            title=scenarios[j],
+                        )
+                        .mark_arc()
+                        .encode(
+                            color='type:N',
+                            theta='Percentage:Q',
+                            tooltip=['type', 'Percentage']
+                        ).properties(
+                            width=400,
+                            height=300
+                        )
+                    )
+                    chart = chart.properties(
+                    ).configure_title(
+                        anchor='middle'
+                    )
+                    row = j // num_cols
+                    col = j % num_cols
+                    with plot_columns[row][col]:
+                        st.altair_chart(chart)
             with tab3:
-                None
+                st.text('To be continued')
 
         if selected_plotA == "Live births":
             st.markdown("<h3 style='text-align: left;'>Live births</h3>",
