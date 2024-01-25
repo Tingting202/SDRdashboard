@@ -96,7 +96,7 @@ def reset_global_vars ():
         'CHV_cov': 0,
         'CHV_45': 0,
         'know_added': 0,
-        'supply_added': 0,
+        'supply_added': [0] * 4,
         'capacity_added': 0,
         'transadded': 0,
         'referadded': 0,
@@ -260,7 +260,7 @@ global_vars = {
     'CHV_cov': CHV_cov,
     'CHV_45': CHV_45,
     'know_added': know_added,
-    'supply_added': supply_added,
+    'supply_added': [supply_added_INT1, supply_added_INT2, supply_added_INT5, supply_added_INT6],
     'capacity_added': capacity_added,
     'transadded': transadded,
     'referadded': referadded,
@@ -628,7 +628,7 @@ with (st.form('Test')):
         if subcounty[j] == 1:
             if flag_sdr:
                 knowl = min(1, (1 + know_added) * (knowl))
-                int_suppl = np.minimum(((1 + supply_added) * suppl) / comps_ratio, 1)
+                #int_suppl = np.minimum(((1 + supply_added) * suppl) / comps_ratio, 1)
                 flag_CHV = 1
                 flag_int1 = 1
                 flag_int2 = 1
@@ -659,7 +659,7 @@ with (st.form('Test')):
             else:
                 INT['transfer']['effect'][j] = 1
             if flag_int1:
-                int_suppl = np.minimum(((1 + supply_added) * suppl) / comps_ratio, 1)
+                int_suppl = np.minimum(((1 + supply_added[0]) * suppl) / comps_ratio, 1)
                 INT['int1']['coverage'][j] = min(knowl * int_suppl[0] * i_usage[0], 1)
                 quality_factor = INT['int1']['coverage'][j] - base[0]
                 INT['int1']['effect'][j] = 1 - ((1 - param['i_int1']) * quality_factor)
@@ -668,7 +668,7 @@ with (st.form('Test')):
                 quality_factor = base[0]
                 INT['int1']['coverage'][j] = quality_factor
             if flag_int2:
-                int_suppl = np.minimum(((1 + supply_added) * suppl) / comps_ratio, 1)
+                int_suppl = np.minimum(((1 + supply_added[1]) * suppl) / comps_ratio, 1)
                 INT['int2']['coverage'][j] = min(knowl * int_suppl[1] * i_usage[1], 1)  # quality_factor
                 quality_factor = INT['int2']['coverage'][j] - base[1]
                 INT['int2']['effect'][j] = 1 - ((1 - param['i_int2']) * quality_factor)
@@ -676,7 +676,7 @@ with (st.form('Test')):
                 quality_factor = base[1]
                 INT['int2']['coverage'][j] = quality_factor
             if flag_int5:
-                int_suppl = np.minimum(((1 + supply_added) * suppl) / comps_ratio, 1)
+                int_suppl = np.minimum(((1 + supply_added[2]) * suppl) / comps_ratio, 1)
                 INT['int5']['coverage'][j] = min(knowl * int_suppl[2] * i_usage[2], 1)  # quality_factor
                 quality_factor = INT['int5']['coverage'][j] - base[2]
                 INT['int5']['effect'][j] = 1 - ((1 - param['i_int5']) * quality_factor)
@@ -684,7 +684,7 @@ with (st.form('Test')):
                 quality_factor = base[2]
                 INT['int5']['coverage'][j] = quality_factor
             if flag_int6:
-                int_suppl = np.minimum(((1 + supply_added) * suppl) / comps_ratio, 1)
+                int_suppl = np.minimum(((1 + supply_added[3]) * suppl) / comps_ratio, 1)
                 INT['int6']['coverage'][j] = min(knowl * int_suppl[3] * i_usage[3], 1)  # quality_factor
                 quality_factor = INT['int6']['coverage'][j] - base[3]
                 INT['int6']['effect'][j] = 1 - ((1 - param['i_int6']) * quality_factor)
