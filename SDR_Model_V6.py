@@ -1656,9 +1656,9 @@ with (st.form('Test')):
             st.markdown("---")
 
             b_df = run_model(param, [0]*12, b_f_intvs, t, n_months, global_vars)
-            b_df.dropna().reset_index().to_csv(
-                "/Users/tingtingji/Library/CloudStorage/Dropbox/Phd PolyU/My Projects/Postdoc in JHU/SDR_project/Dashboard/Output/Baseline.csv",
-                index=False)
+            #b_df.dropna().reset_index().to_csv(
+            #    "/Users/tingtingji/Library/CloudStorage/Dropbox/Phd PolyU/My Projects/Postdoc in JHU/SDR_project/Dashboard/Output/Baseline.csv",
+            #    index=False)
             b_df_aggregate = get_aggregate(b_df)
             b_df_years = agg_years(b_df_aggregate, n_months)
 
@@ -1670,7 +1670,7 @@ with (st.form('Test')):
                 global_vars = reset_global_vars()
                 global_vars['supply_added'][0] = 0.2
                 df = run_model(param, SDR_subcounties, f_intvs, t, n_months, global_vars)
-                df.dropna().reset_index().to_csv("/Users/tingtingji/Library/CloudStorage/Dropbox/Phd PolyU/My Projects/Postdoc in JHU/SDR_project/Dashboard/Output/INT1.csv", index = False)
+                #df.dropna().reset_index().to_csv("/Users/tingtingji/Library/CloudStorage/Dropbox/Phd PolyU/My Projects/Postdoc in JHU/SDR_project/Dashboard/Output/INT1.csv", index = False)
                 df_aggregate = get_aggregate(df)
                 df_years = agg_years(df_aggregate, n_months)
                 op_int1 = get_cost_effectiveness(INTs, time_comp[1], df_years, b_df_years, global_vars)
@@ -1684,7 +1684,7 @@ with (st.form('Test')):
                 global_vars = reset_global_vars()
                 global_vars['supply_added'][1] = 0.2
                 df = run_model(param, SDR_subcounties, f_intvs, t, n_months, global_vars)
-                df.dropna().reset_index().to_csv("/Users/tingtingji/Library/CloudStorage/Dropbox/Phd PolyU/My Projects/Postdoc in JHU/SDR_project/Dashboard/Output/INT2.csv", index = False)
+                #df.dropna().reset_index().to_csv("/Users/tingtingji/Library/CloudStorage/Dropbox/Phd PolyU/My Projects/Postdoc in JHU/SDR_project/Dashboard/Output/INT2.csv", index = False)
                 df_aggregate = get_aggregate(df)
                 df_years = agg_years(df_aggregate, n_months)
                 op_int2 = get_cost_effectiveness(INTs, time_comp[1], df_years, b_df_years, global_vars)
@@ -1698,7 +1698,7 @@ with (st.form('Test')):
                 global_vars =  reset_global_vars()
                 global_vars['supply_added'][2] = 0.2
                 df = run_model(param, SDR_subcounties, f_intvs, t, n_months, global_vars)
-                df.dropna().reset_index().to_csv("/Users/tingtingji/Library/CloudStorage/Dropbox/Phd PolyU/My Projects/Postdoc in JHU/SDR_project/Dashboard/Output/INT5.csv", index = False)
+                #df.dropna().reset_index().to_csv("/Users/tingtingji/Library/CloudStorage/Dropbox/Phd PolyU/My Projects/Postdoc in JHU/SDR_project/Dashboard/Output/INT5.csv", index = False)
                 df_aggregate = get_aggregate(df)
                 df_years = agg_years(df_aggregate, n_months)
                 op_int5 = get_cost_effectiveness(INTs, time_comp[1], df_years, b_df_years, global_vars)
@@ -1712,7 +1712,7 @@ with (st.form('Test')):
                 global_vars = reset_global_vars()
                 global_vars['supply_added'][3] = 0.2
                 df = run_model(param, SDR_subcounties, f_intvs, t, n_months, global_vars)
-                df.dropna().reset_index().to_csv("/Users/tingtingji/Library/CloudStorage/Dropbox/Phd PolyU/My Projects/Postdoc in JHU/SDR_project/Dashboard/Output/INT6.csv", index = False)
+                #df.dropna().reset_index().to_csv("/Users/tingtingji/Library/CloudStorage/Dropbox/Phd PolyU/My Projects/Postdoc in JHU/SDR_project/Dashboard/Output/INT6.csv", index = False)
                 df_aggregate = get_aggregate(df)
                 df_years = agg_years(df_aggregate, n_months)
                 op_int6 = get_cost_effectiveness(INTs, time_comp[1], df_years, b_df_years, global_vars)
@@ -1729,7 +1729,7 @@ with (st.form('Test')):
                 global_vars = reset_global_vars()
                 global_vars['supply_added'] = [0.2, 0.2, 0.2, 0.2]
                 df = run_model(param, SDR_subcounties, f_intvs, t, n_months, global_vars)
-                df.dropna().reset_index().to_csv("/Users/tingtingji/Library/CloudStorage/Dropbox/Phd PolyU/My Projects/Postdoc in JHU/SDR_project/Dashboard/Output/INT1256.csv", index = False)
+                #df.dropna().reset_index().to_csv("/Users/tingtingji/Library/CloudStorage/Dropbox/Phd PolyU/My Projects/Postdoc in JHU/SDR_project/Dashboard/Output/INT1256.csv", index = False)
                 df_aggregate = get_aggregate(df)
                 df_years = agg_years(df_aggregate, n_months)
                 op_int1256 = get_cost_effectiveness(INTs, time_comp[1], df_years, b_df_years, global_vars)
@@ -1756,7 +1756,7 @@ with (st.form('Test')):
                     'refer_capacity': 200
                 }
                 df = run_model(param, SDR_subcounties, f_intvs, t, n_months, global_vars)
-                df.dropna().reset_index().to_csv("/Users/tingtingji/Library/CloudStorage/Dropbox/Phd PolyU/My Projects/Postdoc in JHU/SDR_project/Dashboard/Output/SDR1.csv", index = False)
+                #df.dropna().reset_index().to_csv("/Users/tingtingji/Library/CloudStorage/Dropbox/Phd PolyU/My Projects/Postdoc in JHU/SDR_project/Dashboard/Output/SDR1.csv", index = False)
                 df_aggregate = get_aggregate(df)
                 df_years = agg_years(df_aggregate, n_months)
                 op_sdr1 = get_cost_effectiveness(INTs, time_comp[1], df_years, b_df_years, global_vars)
@@ -1783,7 +1783,7 @@ with (st.form('Test')):
                     'refer_capacity': 200
                 }
                 df = run_model(param, SDR_subcounties, f_intvs, t, n_months, global_vars)
-                df.dropna().reset_index().to_csv("/Users/tingtingji/Library/CloudStorage/Dropbox/Phd PolyU/My Projects/Postdoc in JHU/SDR_project/Dashboard/Output/SDR2.csv", index = False)
+                #df.dropna().reset_index().to_csv("/Users/tingtingji/Library/CloudStorage/Dropbox/Phd PolyU/My Projects/Postdoc in JHU/SDR_project/Dashboard/Output/SDR2.csv", index = False)
                 df_aggregate = get_aggregate(df)
                 df_years = agg_years(df_aggregate, n_months)
                 op_sdr2 = get_cost_effectiveness(INTs, time_comp[1], df_years, b_df_years, global_vars)
@@ -1810,7 +1810,7 @@ with (st.form('Test')):
                     'refer_capacity': 200
                 }
                 df = run_model(param, SDR_subcounties, f_intvs, t, n_months, global_vars)
-                df.dropna().reset_index().to_csv("/Users/tingtingji/Library/CloudStorage/Dropbox/Phd PolyU/My Projects/Postdoc in JHU/SDR_project/Dashboard/Output/SDR3.csv", index = False)
+                #df.dropna().reset_index().to_csv("/Users/tingtingji/Library/CloudStorage/Dropbox/Phd PolyU/My Projects/Postdoc in JHU/SDR_project/Dashboard/Output/SDR3.csv", index = False)
                 df_aggregate = get_aggregate(df)
                 df_years = agg_years(df_aggregate, n_months)
                 op_sdr3 = get_cost_effectiveness(INTs, time_comp[1], df_years, b_df_years, global_vars)
@@ -1837,7 +1837,7 @@ with (st.form('Test')):
                     'refer_capacity': 200
                 }
                 df = run_model(param, SDR_subcounties, f_intvs, t, n_months, global_vars)
-                df.dropna().reset_index().to_csv("/Users/tingtingji/Library/CloudStorage/Dropbox/Phd PolyU/My Projects/Postdoc in JHU/SDR_project/Dashboard/Output/SDR4.csv", index = False)
+                #df.dropna().reset_index().to_csv("/Users/tingtingji/Library/CloudStorage/Dropbox/Phd PolyU/My Projects/Postdoc in JHU/SDR_project/Dashboard/Output/SDR4.csv", index = False)
                 df_aggregate = get_aggregate(df)
                 df_years = agg_years(df_aggregate, n_months)
                 op_sdr4 = get_cost_effectiveness(INTs, time_comp[1], df_years, b_df_years, global_vars)
