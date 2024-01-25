@@ -36,6 +36,7 @@ flag_refer = 0
 flag_sdr = 0
 flag_capacity = 0
 flag_community = 0
+flag_refer_capacity = 0
 diagnosisrate = 0
 ultracovhome = 0
 CHV_cov = 0
@@ -52,7 +53,7 @@ supply_added_INT2 = 0
 supply_added_INT5 = 0
 supply_added_INT6 = 0
 ANCadded = 0
-refer_capacity = 200
+refer_capacity = 100
 
 
 Cap_b = 1
@@ -108,7 +109,7 @@ def reset_global_vars ():
 def reset_INTs ():
     INTs = {'flag_CHV': 0, 'flag_ANC': 0, 'flag_refer': 0, 'flag_trans': 0,
             'flag_int1': 0, 'flag_int2': 0,'flag_int3': 0, 'flag_int4': 0, 'flag_int5': 0,
-            'flag_int6': 0, 'flag_sdr': 0, 'flag_capacity': 0, 'flag_community': 0}
+            'flag_int6': 0, 'flag_sdr': 0, 'flag_capacity': 0, 'flag_community': 0, 'flag_refer_capacity': 0}
     return INTs
 
 ### Side bar ###
@@ -122,12 +123,14 @@ with st.sidebar:
     if select_level == "County":
         plotA_options = ("Pathways","Live births",
                          "Maternal deaths", "MMR",
-                         "Complications",
-                         "Complication rate",
+                         "Complications", "Complication rate",
                          "Cost effectiveness",
                          "ANC rate",
                          "Capacity ratio",
-                         "Intervention coverage"
+                         "Intervention coverage",
+                         "Normal referral",
+                         "Complication referral",
+                         "Referral capacity ratio"
                          )
         selected_plotA = st.selectbox(
             label="Select outcome of interest:",
@@ -210,7 +213,7 @@ with col2:
         if refint:
             flag_sdr = 1
             refer_capacity = st.slider('Improve referral capacity (per subcounty per month)', min_value=100, max_value=300,
-                                       step=1, value=200)
+                                       step=1, value=100)
 
 with col3:
     st.subheader("Single interventions")
@@ -505,7 +508,8 @@ with (st.form('Test')):
             },
             'SDR': {
                 'capacity': np.ones((12)),
-                'quality': np.ones((12))
+                'quality': np.ones((12)),
+                'refer_capacity': np.ones((12))
             },
             'Community': {
                 'effect': np.ones((12))
@@ -568,7 +572,7 @@ with (st.form('Test')):
 
         f_intvs = {'flag_CHV': 0, 'flag_ANC': 0, 'flag_refer': 0, 'flag_trans': 0, 'flag_int1': 0, 'flag_int2': 0,
                    'flag_int3': 0, 'flag_int4': 0, 'flag_int5': 0, 'flag_int6': 0, 'flag_sdr': 0, 'flag_capacity': 0,
-                   'flag_community': 0}
+                   'flag_community': 0, 'flag_refer_capacity': 0}
 
         for x in f_intvs.keys():
             if INTs[x] == 1:
@@ -577,20 +581,6 @@ with (st.form('Test')):
             else:
                 f_intvs[x] = np.array([0] * n_months)
         return f_intvs
-
-
-    def set_time_int(INTs, time_comp):
-        f_intvs = {'flag_CHV': 0, 'flag_ANC': 0, 'flag_refer': 0, 'flag_trans': 0, 'flag_int1': 0, 'flag_int2': 0,
-                   'flag_int5': 0, 'flag_int6': 0, 'flag_sdr': 0, 'flag_capacity': 0, 'flag_community': 0}
-
-        for x in f_intvs.keys():
-            if INTs[x] == 1:
-                f_intvs[x] = np.array(
-                    [0] * time_comp[0] + [1] * (time_comp[1] - time_comp[0]) + [0] * (n_months - time_comp[1]))
-            else:
-                f_intvs[x] = np.array([0] * n_months)
-        return f_intvs
-
 
     def set_INT(param, i, j, subcounty, f_intvs, comps, global_vars):
         flag_CHV = f_intvs['flag_CHV'][i]
@@ -604,6 +594,7 @@ with (st.form('Test')):
         flag_sdr = f_intvs['flag_sdr'][i]
         flag_capacity = f_intvs['flag_capacity'][i]
         flag_community = f_intvs['flag_community'][i]
+        flag_refer_capacity = f_intvs['flag_refer_capacity'][i]
 
         Capacity = np.array(
             [3000.0, 1992.0, 1608.0, 2328.0, 2784.0, 6060.0, 4176.0, 2736.0, 1308.0, 5820.0, 2088.0, 5124.0]) / 12
@@ -644,6 +635,7 @@ with (st.form('Test')):
                 flag_int5 = 1
                 flag_int6 = 1
                 flag_capacity = 1
+                flag_refer_capacity = 1
             if flag_CHV:
                 INT['CHV']['sdr_effect'][j] = CHV_45 * CHV_cov
                 flag_ANC = 1
@@ -707,6 +699,11 @@ with (st.form('Test')):
                 INT['Community']['effect'][j] = 1
             else:
                 INT['Community']['effect'][j] = 0
+            if flag_refer_capacity:
+                INT['SDR']['refer_capacity'][j] = global_vars['refer_capacity']
+            else:
+                INT['SDR']['refer_capacity'][j] = 100
+
         else:
             INT['CHV']['sdr_effect'][j] = 0
             INT['ANC']['effect'][j] = 1
@@ -722,6 +719,7 @@ with (st.form('Test')):
             INT['int6']['effect'][j] = 1
             Capacity[j] = Capacity[j]
             INT['Community']['effect'][j] = 0
+            INT['SDR']['refer_capacity'][j] = 100
         return INT, Capacity
 
     def get_cost_effectiveness(INTs, timepoint, df_aggregate, b_df_aggregate, global_vars):
@@ -947,7 +945,7 @@ with (st.form('Test')):
                     sc_time['LB1s'][j][i, :], Push_back[i, j] = f_LB_effect(sc_time['LB1s'][j][0, :], com_ref[j, i - 1],
                                                                             sc_time['LB1s'][j][i - 1, :], i_INT,
                                                                             flag_pushback, j, i, Capacity_ratio[:, j],
-                                                                            opinion[i, j], Capacity, global_vars)
+                                                                            opinion[i, j], Capacity)
                     LB_tot_i = np.maximum(sc_time['LB1s'][j][0, :], 1)
                     SDR_multiplier = sc_time['LB1s'][j][i, :] / LB_tot_i
 
@@ -967,7 +965,7 @@ with (st.form('Test')):
                                          2:4])
                     normal_ref[j, i] = max(base_normal_ref, add_normal_ref)
                     com_ref[j, i] = complication_ref
-                    Capacity_ratio_ref[j, i] = np.sum(normal_ref[j, i] + com_ref[j, i]) / global_vars['refer_capacity']
+                    Capacity_ratio_ref[j, i] = np.sum(normal_ref[j, i] + com_ref[j, i]) / i_INT['SDR']['refer_capacity'][j]
 
                     df_3d.loc[(j, i), ['Live Births Initial', 'Live Births Final', 'LB-ANC', 'ANC-Anemia',
                                        'Anemia-Complications', 'Complications-Facility Level',
@@ -997,8 +995,8 @@ with (st.form('Test')):
 
         return df_3d
 
-    def f_LB_effect(SC_LB_base, Com_ref, SC_LB_previous, INT, flag_pushback, j, i, Capacity_ratio, opinion, Capacity, global_vars):
-        referral_capacity = global_vars['refer_capacity']
+    def f_LB_effect(SC_LB_base, Com_ref, SC_LB_previous, INT, flag_pushback, j, i, Capacity_ratio, opinion, Capacity):
+        referral_capacity = INT['SDR']['refer_capacity'][j]
         INT_b = INT['CHV']['sdr_effect'][j]
         INT_c = INT['Community']['effect'][j] * community_effect(opinion) * (INT_b > 0)
         if flag_pushback:
@@ -1136,8 +1134,9 @@ with (st.form('Test')):
 
     INTs = {'flag_CHV': flag_CHV, 'flag_ANC': flag_ANC, 'flag_refer': flag_refer, 'flag_trans': flag_trans, 'flag_int1': flag_int1, 'flag_int2': flag_int2,
             'flag_int3': flag_int3, 'flag_int4': flag_int4, 'flag_int5': flag_int5, 'flag_int6': flag_int6, 'flag_sdr': flag_sdr, 'flag_capacity': flag_capacity,
-            'flag_community': flag_community}
-    b_INTs = {'flag_CHV': 0, 'flag_ANC': 0, 'flag_refer': 0, 'flag_trans': 0, 'flag_int1': 0, 'flag_int2': 0, 'flag_int3': 0, 'flag_int4': 0, 'flag_int5': 0, 'flag_int6': 0, 'flag_sdr': 0, 'flag_capacity': 0, 'flag_community': 0}
+            'flag_community': flag_community, 'flag_refer_capacity': flag_refer_capacity}
+    b_INTs = {'flag_CHV': 0, 'flag_ANC': 0, 'flag_refer': 0, 'flag_trans': 0, 'flag_int1': 0, 'flag_int2': 0, 'flag_int3': 0, 'flag_int4': 0, 'flag_int5': 0,
+              'flag_int6': 0, 'flag_sdr': 0, 'flag_capacity': 0, 'flag_community': 0, 'flag_refer_capacity': 0}
     n_months = 36
     t = range(n_months)
     time_comp = [0, stop_time]
@@ -1208,6 +1207,12 @@ with (st.form('Test')):
         INT5Cov = df_outcomes[['Subcounty', 'Time', 'INT5 cover']]
         bINT6Cov = df_b_outcomes[['Subcounty', 'Time', 'INT6 cover']]
         INT6Cov = df_outcomes[['Subcounty', 'Time', 'INT6 cover']]
+        normrefer = df_outcomes[['Subcounty', 'Time', 'Normal Referral']]
+        bnormrefer = df_b_outcomes[['Subcounty', 'Time', 'Normal Referral']]
+        comrefer = df_outcomes[['Subcounty', 'Time', 'Complication Referral']]
+        bcomrefer = df_b_outcomes[['Subcounty', 'Time', 'Complication Referral']]
+        capratiorefer = df_outcomes[['Subcounty', 'Time', 'Referral capacity ratio']]
+        bcapratiorefer = df_b_outcomes[['Subcounty', 'Time', 'Referral capacity ratio']]
 
         ####Define functions for plotting
         faccols = ['Subcounty', 'month', 'Home', 'L2/3', 'L4', 'L5', 'Sum']
@@ -2113,6 +2118,51 @@ with (st.form('Test')):
                         chart = subcountyplots(dfs[i][j], p_title[j], "Coverage", ymax)
                         with cols[j]:
                             st.altair_chart(chart)
+
+        if selected_plotA == "Normal referral":
+            st.markdown("<h3 style='text-align: left;'>Normal referral from home to L4/5</h3>",
+                        unsafe_allow_html=True)
+
+            p_title = ['Baseline', 'Intervention']
+            col0, col1 = st.columns(2)
+            cols = [col0, col1]
+            dfs = [bnormrefer, normrefer]
+            ymax = max(dfs[0].iloc[:, 2].max(), dfs[1].iloc[:, 2].max()) + 10
+
+            for i in range(2):
+                chart = subcountyplots(dfs[i], p_title[i], "Normal Referral", ymax)
+                with cols[i]:
+                    st.altair_chart(chart)
+
+        if selected_plotA == "Complication referral":
+            st.markdown("<h3 style='text-align: left;'>Complication referral from L2/3 to L4/5</h3>",
+                        unsafe_allow_html=True)
+
+            p_title = ['Baseline', 'Intervention']
+            col0, col1 = st.columns(2)
+            cols = [col0, col1]
+            dfs = [bcomrefer, comrefer]
+            ymax = max(dfs[0].iloc[:, 2].max(), dfs[1].iloc[:, 2].max()) + 0.1
+
+            for i in range(2):
+                chart = subcountyplots(dfs[i], p_title[i], "Complication Referral", ymax)
+                with cols[i]:
+                    st.altair_chart(chart)
+
+        if selected_plotA == "Referral capacity ratio":
+            st.markdown("<h3 style='text-align: left;'>Referral Capacity Ratio</h3>",
+                        unsafe_allow_html=True)
+
+            p_title = ['Baseline', 'Intervention']
+            col0, col1 = st.columns(2)
+            cols = [col0, col1]
+            dfs = [bcapratiorefer, capratiorefer]
+            ymax = max(dfs[0].iloc[:, 2].max(), dfs[1].iloc[:, 2].max()) + 0.1
+
+            for i in range(2):
+                chart = subcountyplots(dfs[i], p_title[i], "Referral Capacity Ratio", ymax)
+                with cols[i]:
+                    st.altair_chart(chart)
 
         def creatsubcountydf(df0, cols, colrange):
             df = pd.DataFrame(df0)
