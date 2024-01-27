@@ -89,20 +89,23 @@ SC_ID = {
     11: "Shinyalu"
 }
 
-def reset_global_vars ():
+def reset_global_vars():
     global_vars = {
         'ANCadded': 0,
         'CHV_pushback': False,
         'CHV_cov': 0,
         'CHV_45': 0,
         'know_added': 0,
-        'supply_added': [0] * 4,
+        'supply_added': {'supply_added_INT1': 0,
+                         'supply_added_INT2': 0,
+                         'supply_added_INT5': 0,
+                         'supply_added_INT6': 0},
         'capacity_added': 0,
         'transadded': 0,
         'referadded': 0,
         'ultracovhome': 0,
         'diagnosisrate': 0,
-        'refer_capacity': 200
+        'refer_capacity': 100
     }
     return global_vars
 
@@ -178,6 +181,7 @@ with col1:
     with col1_2:
         st.text('Adjust parameters')
         if CHVint:
+            flag_sdr = 1
             flag_CHV = 1
             CHV_cov = st.slider("CHV Coverage", min_value=0.0, max_value=1.0, step=0.1, value=0.5)
             CHV_45 = st.slider("CHV effect on delivery at L4/5", min_value=0.00, max_value=0.10, step=0.01, value=0.02)
@@ -199,8 +203,8 @@ with col2:
                                    step=0.1, value=0.2)
             capacity_added = st.slider("Improve facility capacity (labor, equipment, infrastructure)", min_value=0.0, max_value=1.0, step=0.1,
                                        value=0.2)
-            supply_added = st.slider("Improve single-intervention inventory", min_value=0.0, max_value=5.0, step=0.1,
-                                     value=0.2)
+            supply_added = st.slider("Improve single-intervention inventory", min_value=0, max_value=20, step=1,
+                                     value=1)
             supply_added_INT1 = supply_added
             supply_added_INT2 = supply_added
             supply_added_INT5 = supply_added
@@ -225,8 +229,13 @@ with col3:
         st.text('Adjust parameters')
         if int1:
             flag_int1 = 1
-            supply_added_INT1 = st.slider("Increase inventory of INT1", min_value=0.0, max_value=0.3, step=0.1,
+            value = st.slider("Increase inventory of INT1", min_value=0.0, max_value=0.3, step=0.1,
                                      value=0.1)
+            if flag_sdr == 0:
+                supply_added_INT1 = value
+            else:
+                supply_added_INT1 = supply_added_INT1
+
     st.markdown("---")
     col3_3, col3_4 = st.columns(2)
     with col3_3:
@@ -234,8 +243,12 @@ with col3:
     with col3_4:
         if int2:
             flag_int2 = 1
-            supply_added_INT2 = st.slider("Increase inventory of INT2", min_value=0.0, max_value=5.0, step=0.1,
+            value = st.slider("Increase inventory of INT2", min_value=0.0, max_value=5.0, step=0.1,
                                           value=0.2)
+            if flag_sdr == 0:
+                supply_added_INT2 = value
+            else:
+                supply_added_INT2 = supply_added_INT2
     st.markdown("---")
     col3_5, col3_6 = st.columns(2)
     with col3_5:
@@ -243,8 +256,12 @@ with col3:
     with col3_6:
         if int5:
             flag_int5 = 1
-            supply_added_INT5 = st.slider("Increase inventory of INT5", min_value=0.0, max_value=0.1, step=0.1,
+            value = st.slider("Increase inventory of INT5", min_value=0.0, max_value=0.1, step=0.1,
                                           value=0.1)
+            if flag_sdr == 0:
+                supply_added_INT5 = value
+            else:
+                supply_added_INT5 = supply_added_INT5
     st.markdown("---")
     col3_7, col3_8 = st.columns(2)
     with col3_7:
@@ -252,27 +269,14 @@ with col3:
     with col3_8:
         if int6:
             flag_int6 = 1
-            supply_added_INT6 = 0
+            if flag_sdr == 0:
+                supply_added_INT6 = 0
+            else:
+                supply_added_INT6 = supply_added_INT6
 
-global_vars = {
-    'ANCadded': ANCadded,
-    'CHV_pushback': CHV_pushback,
-    'CHV_cov': CHV_cov,
-    'CHV_45': CHV_45,
-    'know_added': know_added,
-    'supply_added': [supply_added_INT1, supply_added_INT2, supply_added_INT5, supply_added_INT6],
-    'capacity_added': capacity_added,
-    'transadded': transadded,
-    'referadded': referadded,
-    'ultracovhome': ultracovhome,
-    'diagnosisrate': diagnosisrate,
-    'refer_capacity': refer_capacity
-}
-
-with (st.form('Test')):
+with ((st.form('Test'))):
     ### PARAMETERs ###
     shapefile_path2 = 'ke_subcounty.shp'
-
 
     ### parameters
     def get_parameters():
@@ -582,7 +586,7 @@ with (st.form('Test')):
                 f_intvs[x] = np.array([0] * n_months)
         return f_intvs
 
-    def set_INT(param, i, j, subcounty, f_intvs, comps, global_vars):
+    def set_INT(param, i, j, subcounty, f_intvs, i_scenarios, sc, comps, global_vars):
         flag_CHV = f_intvs['flag_CHV'][i]
         flag_ANC = f_intvs['flag_ANC'][i]
         flag_refer = f_intvs['flag_refer'][i]
@@ -615,7 +619,10 @@ with (st.form('Test')):
         suppl = np.minimum(np.array([s for s in supplies]) / comps_ratio, 1)
         base = np.minimum(suppl * knowl * b_usage, 1)
 
-        supply_added = global_vars['supply_added']
+        supply_added_INT1 = global_vars['supply_added']['supply_added_INT1']
+        supply_added_INT2 = global_vars['supply_added']['supply_added_INT2']
+        supply_added_INT5 = global_vars['supply_added']['supply_added_INT5']
+        supply_added_INT6 = global_vars['supply_added']['supply_added_INT6']
         know_added = global_vars['know_added']
         capacity_added = global_vars['capacity_added']
         CHV_45 = global_vars['CHV_45']
@@ -659,7 +666,7 @@ with (st.form('Test')):
             else:
                 INT['transfer']['effect'][j] = 1
             if flag_int1:
-                int_suppl = np.minimum(((1 + supply_added[0]) * suppl) / comps_ratio, 1)
+                int_suppl = np.minimum(((1 + supply_added_INT1) * suppl) / comps_ratio, 1)
                 INT['int1']['coverage'][j] = min(knowl * int_suppl[0] * i_usage[0], 1)
                 quality_factor = INT['int1']['coverage'][j] - base[0]
                 INT['int1']['effect'][j] = 1 - ((1 - param['i_int1']) * quality_factor)
@@ -668,7 +675,8 @@ with (st.form('Test')):
                 quality_factor = base[0]
                 INT['int1']['coverage'][j] = quality_factor
             if flag_int2:
-                int_suppl = np.minimum(((1 + supply_added[1]) * suppl) / comps_ratio, 1)
+                int_suppl = np.minimum(((1 + supply_added_INT2) * suppl) / comps_ratio, 1)
+                # INT['int2']['coverage'][j] = min(knowl * int_suppl * i_usage[1], 1)
                 INT['int2']['coverage'][j] = min(knowl * int_suppl[1] * i_usage[1], 1)  # quality_factor
                 quality_factor = INT['int2']['coverage'][j] - base[1]
                 INT['int2']['effect'][j] = 1 - ((1 - param['i_int2']) * quality_factor)
@@ -676,7 +684,7 @@ with (st.form('Test')):
                 quality_factor = base[1]
                 INT['int2']['coverage'][j] = quality_factor
             if flag_int5:
-                int_suppl = np.minimum(((1 + supply_added[2]) * suppl) / comps_ratio, 1)
+                int_suppl = np.minimum(((1 + supply_added_INT5) * suppl) / comps_ratio, 1)
                 INT['int5']['coverage'][j] = min(knowl * int_suppl[2] * i_usage[2], 1)  # quality_factor
                 quality_factor = INT['int5']['coverage'][j] - base[2]
                 INT['int5']['effect'][j] = 1 - ((1 - param['i_int5']) * quality_factor)
@@ -684,7 +692,7 @@ with (st.form('Test')):
                 quality_factor = base[2]
                 INT['int5']['coverage'][j] = quality_factor
             if flag_int6:
-                int_suppl = np.minimum(((1 + supply_added[3]) * suppl) / comps_ratio, 1)
+                int_suppl = np.minimum(((1 + supply_added_INT6) * suppl) / comps_ratio, 1)
                 INT['int6']['coverage'][j] = min(knowl * int_suppl[3] * i_usage[3], 1)  # quality_factor
                 quality_factor = INT['int6']['coverage'][j] - base[3]
                 INT['int6']['effect'][j] = 1 - ((1 - param['i_int6']) * quality_factor)
@@ -731,11 +739,18 @@ with (st.form('Test')):
                  'death': 0.54
         }
 
-        flag_int1 = INTs['flag_int1']  # Obstetric drape
-        flag_int2 = INTs['flag_int2']  # Anemia reduction through IV Iron
-        flag_int5 = INTs['flag_int5']  # MgSO4 for eclampsia
-        flag_int6 = INTs['flag_int6']  # antibiotics for maternal sepsis
+
         flag_sdr = INTs['flag_sdr']  # SDR
+        if flag_sdr:
+            flag_int1 = 1  # Obstetric drape
+            flag_int2 = 1  # Anemia reduction through IV Iron
+            flag_int5 = 1  # MgSO4 for eclampsia
+            flag_int6 = 1  # antibiotics for maternal sepsis
+        else:
+            flag_int1 = INTs['flag_int1']  # Obstetric drape
+            flag_int2 = INTs['flag_int2']  # Anemia reduction through IV Iron
+            flag_int5 = INTs['flag_int5']  # MgSO4 for eclampsia
+            flag_int6 = INTs['flag_int6']  # antibiotics for maternal sepsis
 
         DALYs_averted = 0
         b_low_pph_all = 0
@@ -760,6 +775,26 @@ with (st.form('Test')):
         pctaddfac_deliveries = 0
         addreferral = 0
 
+        low_pph_all = 0
+        high_pph_all = 0
+        pph_all = 0
+        eclampsia_all = 0
+        sepsis_all = 0
+        obstructed_all = 0
+        other_all = 0
+
+        b_int1_covered = 0
+        i_int1_covered = 0
+        b_int2_covered = 0
+        i_int2_covered = 0
+        b_int5_covered = 0
+        i_int5_covered = 0
+        b_int6_covered = 0
+        i_int6_covered = 0
+
+        L45deliveries = 0
+
+            #INT1 cover
         for i in range(3):
             #Baseline
             low_pph1 = np.sum(b_df_years.loc[i, 'Complications-Health'], axis=1)[0] * \
@@ -786,10 +821,18 @@ with (st.form('Test')):
             sepsis1 = np.sum(df_years.loc[i, 'Complications-Health'], axis=1)[1]
             eclampsia1 = np.sum(df_years.loc[i, 'Complications-Health'], axis=1)[2]
             obstructed1 = np.sum(df_years.loc[i, 'Complications-Health'], axis=1)[3]
+            other1 = np.sum(df_years.loc[i, 'Complications-Health'], axis=1)[4]
             maternal_deaths1 = np.sum(df_years.loc[i, 'Deaths'])
             i_DALYs1 = (DALYs['low pph'] * low_pph1 + DALYs['high pph'] * high_pph1
                         + DALYs['sepsis'] * sepsis1 + DALYs['eclampsia'] * eclampsia1 + DALYs['obstructed labor'] * obstructed1
                         + DALYs['death'] * maternal_deaths1) * 62.63
+            low_pph_all += low_pph1
+            high_pph_all += high_pph1
+            pph_all = low_pph_all + high_pph_all
+            eclampsia_all += eclampsia1
+            sepsis_all += sepsis1
+            obstructed_all += obstructed1
+            other_all += other1
 
             DALYs_averted1 = b_DALYs1 - i_DALYs1
             DALYs_averted += DALYs_averted1
@@ -801,7 +844,10 @@ with (st.form('Test')):
             addCsections = addfac_deliveries * 0.098
             total_LB = np.sum(df_years.loc[i, 'Live Births Final'])
             pctaddfac_deliveries = addfac_deliveries * 100 / (total_LB * 3)
-            addreferral1 = np.sum(df_years.loc[i, 'Normal Referral'] + df_years.loc[i, 'Complication Referral'])
+
+            b_referral = np.sum(b_df_years.loc[i, 'Normal Referral'] + b_df_years.loc[i, 'Complication Referral'])
+            referral = np.sum(df_years.loc[i, 'Normal Referral'] + df_years.loc[i, 'Complication Referral'])
+            addreferral1 = referral - b_referral
             addreferral += addreferral1
 
             b_anc = b_df_years.loc[i, 'LB-ANC'][1]
@@ -824,34 +870,64 @@ with (st.form('Test')):
                 addCsections_year3 = addCsections
                 addanc_year3 = addanc
 
+            ##INT coverage
+            int1_covered = b_df_years.loc[i, 'Mothers with INT1']
+            b_int1_covered += int1_covered
+            int1_covered = df_years.loc[i, 'Mothers with INT1']
+            i_int1_covered += int1_covered
+
+            int2_covered = b_df_years.loc[i, 'Mothers with INT2']
+            b_int2_covered += int2_covered
+            int2_covered = df_years.loc[i, 'Mothers with INT2']
+            i_int2_covered += int2_covered
+
+            int5_covered = b_df_years.loc[i, 'Mothers with INT5']
+            b_int5_covered += int5_covered
+            int5_covered = df_years.loc[i, 'Mothers with INT5']
+            i_int5_covered += int5_covered
+
+            int6_covered = b_df_years.loc[i, 'Mothers with INT6']
+            b_int6_covered += int6_covered
+            int6_covered1 = df_years.loc[i, 'Mothers with INT6']
+            i_int6_covered += int6_covered
+
+            #Baseline facility delivery rate
+            L45deliveries1 = np.sum(b_df_years.loc[i, 'Live Births Final'][2:4])
+            L45deliveries += L45deliveries1
+            L45rate = L45deliveries / (total_LB * 3)
+
         if flag_sdr:
             anc_cost += 288 / 110 * (addanc_year1 * (1 + 0.03) + addanc_year2 * (1 + 0.03) ** 2 + addanc_year3 * (1 + 0.03) ** 3)
             delivery_cost = 6148 / 110 * (addfac_deliveries_year1 * (1 + 0.03) + addfac_deliveries_year2 * (
                         1 + 0.03) ** 2 + addfac_deliveries_year3 * (1 + 0.03) ** 3)
             c_section_cost = 29804 / 110 * (addCsections_year1 * (1 + 0.03) + addCsections_year2 * (1 + 0.03) ** 2 + addCsections_year3 * (1 + 0.03) ** 3)
 
-            equipment_cost = 39984826 / 110 * (global_vars['capacity_added'] * 10 / 15)
-            labor_cost = 370785580 / 110 * (global_vars['capacity_added'] * 10 / 15) * 3 * (timepoint / 36)
-            infrastructure_cost = 136600000 / 110 * (global_vars['capacity_added'] * 10 / 15)
+            equipment_cost = 39984826 / 110 * (global_vars['capacity_added'] * L45rate * 10 / 15)
+            labor_cost = 370785580 / 110 * (global_vars['capacity_added'] * L45rate * 10 / 15) * 3 * (timepoint / 36)
+            infrastructure_cost = 136600000 / 110 * (global_vars['capacity_added'] * L45rate * 10 / 15)
 
             chv_cost = (1974 * 420) / 110 * sum(SDR_subcounties) * CHV_cov + (1974 * 2 * 33) / 110 * sum(SDR_subcounties) * CHV_cov * 3 * (timepoint / 36) + 100 / 110 * addfac_deliveries
-            intervention_cost = (1 * (b_high_pph_all + b_high_pph_all) * global_vars['supply_added'][0] +
-                                 2.26 * b_anc_all * global_vars['supply_added'][1] + 3 * b_eclampsia_all * global_vars['supply_added'][2] +
-                                 12.30 * b_sepsis_all * global_vars['supply_added'][3]) * (timepoint / 36)
+            #intervention_cost = (1 * (b_high_pph_all + b_high_pph_all) * global_vars['supply_added']['supply_added_INT1'] +
+            #                     2.26 * b_anc_all * global_vars['supply_added']['supply_added_INT2'] + 3 * b_eclampsia_all * global_vars['supply_added']['supply_added_INT5'] +
+            #                     12.30 * b_sepsis_all * global_vars['supply_added']['supply_added_INT6']) * (timepoint / 36)
             access_cost = 9287 / 110 * addreferral
-        else:
-            if flag_int1:
-                intervention_cost += 1 * (b_high_pph_all + b_high_pph_all) * global_vars['supply_added'][0] * (timepoint / 36)
-            if flag_int2:
-                intervention_cost += 2.26 * b_anc_all * global_vars['supply_added'][1] * (timepoint / 36)
-            if flag_int5:
-                intervention_cost += 3 * b_eclampsia_all * global_vars['supply_added'][2] * (timepoint / 36)
-            if flag_int6:
-                intervention_cost += 12.30 * b_sepsis_all * global_vars['supply_added'][3] * (timepoint / 36)
+        #else:
+        if flag_int1:
+            intervention_cost += 1 * (i_int1_covered - b_int1_covered)
+            #intervention_cost += 1 * (b_high_pph_all + b_high_pph_all) * global_vars['supply_added']['supply_added_INT1'] * (timepoint / 36)
+        if flag_int2:
+            intervention_cost += 2.26 * (i_int2_covered - b_int2_covered)
+            #intervention_cost += 2.26 * b_anc_all * global_vars['supply_added']['supply_added_INT2'] * (timepoint / 36)
+        if flag_int5:
+            intervention_cost += 3 * (i_int5_covered - b_int5_covered)
+        #intervention_cost += 3 * b_eclampsia_all * global_vars['supply_added']['supply_added_INT5'] * (timepoint / 36)
+        if flag_int6:
+            intervention_cost += 12.30 * (i_int6_covered - b_int6_covered)
+            #intervention_cost += 12.30 * b_sepsis_all * global_vars['supply_added']['supply_added_INT6'] * (timepoint / 36)
 
         cost = anc_cost + intervention_cost + equipment_cost + delivery_cost + c_section_cost + labor_cost + infrastructure_cost + chv_cost + access_cost
 
-        return cost, anc_cost, intervention_cost, equipment_cost, delivery_cost, c_section_cost, labor_cost, infrastructure_cost, chv_cost, access_cost, pctaddanc, pctaddfac_deliveries, DALYs_averted
+        return cost, anc_cost, intervention_cost, equipment_cost, delivery_cost, c_section_cost, labor_cost, infrastructure_cost, chv_cost, access_cost, pph_all, eclampsia_all, sepsis_all, obstructed_all, other_all, pctaddanc, pctaddfac_deliveries, DALYs_averted
 
     def set_param(param):
 
@@ -917,18 +993,21 @@ with (st.form('Test')):
                                                    'Transferred In', 'Transferred Out',
                                                    'Facility Level-Complications Post', 'Facility Level-Severity',
                                                    'Transfer Severity Mortality', 'Deaths', 'Facility Level-Health',
-                                                   'Complications-Survive', 'Complications-Health',
+                                                   'Complications-Survive', 'Complications-Health', 'Complications-All',
                                                    'Complications-Complications',
                                                    'Capacity Ratio', 'Push Back', 'INT1 cover', 'INT2 cover',
                                                    'INT5 cover', 'INT6 cover',
                                                    'Normal Referral', 'Complication Referral',
-                                                   'Referral capacity ratio'])
+                                                   'Referral capacity ratio', 'Mothers with INT1', 'Mothers with INT2', 'Mothers with INT5', 'Mothers with INT6'])
 
         for i in t:
             LB_tot_i = np.zeros(4)
             for j in range(sc_time['n']):
 
                 if i > 0:
+                    i_INT, Capacity = set_INT(param, i, j, subcounty, f_intvs, i_scenarios, sc, comps[j, i - 1],
+                                              global_vars)
+
                     probs = []
                     p_anc_anemia = odds_prob(param['or_anc_anemia'], p_anemia, 1 - sc['ANC'][j]) * (
                                 1 - sc['ANC'][j] * i_INT['ANC']['effect'][j]) / (1 - sc['ANC'][j])
@@ -940,7 +1019,8 @@ with (st.form('Test')):
                                          i_INT['int2']['effect'][j]
                     probs.extend([p_anc_anemia, p_anemia_pph, p_anemia_sepsis, p_anemia_eclampsia])
 
-                    i_INT, Capacity = set_INT(param, i, j, subcounty, f_intvs, comps[j, i - 1], global_vars)
+                    #st.text(i_INT['int2']['effect'][j])
+
 
                     sc_time['LB1s'][j][i, :], Push_back[i, j] = f_LB_effect(sc_time['LB1s'][j][0, :], com_ref[j, i - 1],
                                                                             sc_time['LB1s'][j][i - 1, :], i_INT,
@@ -953,7 +1033,7 @@ with (st.form('Test')):
                     comps_overall = np.sum((f_comps * sc_time['LB1s'][j][i, :])) / np.sum(sc_time['LB1s'][j][i, :])
                     f_refer = comps_overall - f_comps
 
-                    LB_tot, LB_tot_final, lb_anc, anc_anemia, anemia_comps_pre, comps_level_pre, f_comps_level_pre, transferred_in, transferred_out, f_comps_level_post, f_severe_post, f_state_mort, f_deaths, f_health, f_comp_survive, comps_health, comps_comps = f_MM(
+                    LB_tot, LB_tot_final, lb_anc, anc_anemia, anemia_comps_pre, comps_level_pre, f_comps_level_pre, transferred_in, transferred_out, f_comps_level_post, f_severe_post, f_state_mort, f_deaths, f_health, f_comp_survive, comps_health, comps_all, comps_comps = f_MM(
                         LB_tot_i, anc, i_INT, SDR_multiplier, f_transfer_rates, f_mort_rates, f_refer, comps_overall,
                         probs, sc, j, i)
 
@@ -972,17 +1052,26 @@ with (st.form('Test')):
                                        'Facility Level-Complications Pre', 'Transferred In', 'Transferred Out',
                                        'Facility Level-Complications Post', 'Facility Level-Severity',
                                        'Transfer Severity Mortality', 'Deaths', 'Facility Level-Health',
-                                       'Complications-Survive', 'Complications-Health', 'Complications-Complications',
+                                       'Complications-Survive', 'Complications-Health', 'Complications-All', 'Complications-Complications',
                                        'Push Back', 'INT1 cover', 'INT2 cover', 'INT5 cover', 'INT6 cover',
                                        'Normal Referral', 'Complication Referral', 'Referral capacity ratio']] = [
                         LB_tot, LB_tot_final.astype(float), np.round(lb_anc, decimals=2), anc_anemia, anemia_comps_pre,
                         comps_level_pre, f_comps_level_pre, transferred_in.astype(float), transferred_out.astype(float),
                         f_comps_level_post, f_severe_post, f_state_mort, f_deaths, f_health, f_comp_survive,
-                        comps_health, comps_comps, Push_back[i, j], i_INT['int1']['coverage'][j],
+                        np.round(comps_health, decimals=3), comps_all, comps_comps, Push_back[i, j], i_INT['int1']['coverage'][j],
                         i_INT['int2']['coverage'][j], i_INT['int5']['coverage'][j], i_INT['int6']['coverage'][j],
                         normal_ref[j, i], com_ref[j, i], Capacity_ratio_ref[j, i]]
 
                     comps[j, i] = np.sum(f_comps_level_post[2:4]) / (np.sum(f_comps_level_post))
+
+                    #pph covered
+                    df_3d.loc[(j, i), 'Mothers with INT1'] = comps_all[0] * i_INT['int1']['coverage'][j]
+                    #anemia covered
+                    df_3d.loc[(j, i), 'Mothers with INT2'] = np.sum(LB_tot) * i_INT['int2']['coverage'][j]
+                    #eclampisa covered
+                    df_3d.loc[(j, i), 'Mothers with INT5'] = comps_all[2] * i_INT['int5']['coverage'][j]
+                    #sepsis covered
+                    df_3d.loc[(j, i), 'Mothers with INT6'] = comps_all[1] * i_INT['int6']['coverage'][j]
 
                 if j != 5:
                     Capacity_ratio[i, j] = np.sum(sc_time['LB1s'][j][i, 2:3]) / Capacity[j]
@@ -1099,6 +1188,7 @@ with (st.form('Test')):
         mort_reduction = mort_reduction * comps_health[:, 0]  # sepsis
         comps_health[:, 0] = comps_health[:, 0] - mort_reduction
         comps_health[:, 1] = comps_health[:, 1] + mort_reduction
+        comps_all = comps_health[:, 0] + comps_health[:, 1]
 
         comps_comps = f_severe_pre[:, 1].reshape(4, 1) * f_transfer_rates
         for i in range(4):
@@ -1106,7 +1196,7 @@ with (st.form('Test')):
 
         LB_tot_final = LB_tot + transferred_in - transferred_out
 
-        return LB_tot, LB_tot_final, lb_anc, anc_anemia, anemia_comps_pre, comps_level_pre, f_comps_level_pre, transferred_in, transferred_out, f_comps_level_post, f_severe_post, f_state_mort, f_deaths, f_health, f_comp_survive, comps_health, comps_comps
+        return LB_tot, LB_tot_final, lb_anc, anc_anemia, anemia_comps_pre, comps_level_pre, f_comps_level_pre, transferred_in, transferred_out, f_comps_level_post, f_severe_post, f_state_mort, f_deaths, f_health, f_comp_survive, comps_health, comps_all, comps_comps
 
 
     def set_param(param):
@@ -1145,7 +1235,26 @@ with (st.form('Test')):
 
     submitted = st.form_submit_button("Run Model")
     if submitted:
-        b_outcomes = run_model(param, [0]*12, b_f_intvs, t, n_months, global_vars) #run_model([], b_flags)
+        b_global_vars = reset_global_vars()
+        global_vars = {
+            'ANCadded': ANCadded,
+            'CHV_pushback': CHV_pushback,
+            'CHV_cov': CHV_cov,
+            'CHV_45': CHV_45,
+            'know_added': know_added,
+            'supply_added': {'supply_added_INT1': supply_added_INT1,
+                             'supply_added_INT2': supply_added_INT2,
+                             'supply_added_INT5': supply_added_INT5,
+                             'supply_added_INT6': supply_added_INT6},
+            'capacity_added': capacity_added,
+            'transadded': transadded,
+            'referadded': referadded,
+            'ultracovhome': ultracovhome,
+            'diagnosisrate': diagnosisrate,
+            'refer_capacity': refer_capacity
+        }
+        b_outcomes = run_model(param, [0]*12, b_f_intvs, t, n_months, b_global_vars) #run_model([], b_flags)
+        #b_outcomes
         outcomes = run_model(param, SDR_subcounties, f_intvs, t, n_months, global_vars) #run_model(SCID_selected, flags)
         b_df_aggregate = get_aggregate(b_outcomes)
         df_aggregate = get_aggregate(outcomes)
@@ -1654,70 +1763,72 @@ with (st.form('Test')):
                 ce_sdr3 = st.checkbox('SDR (low demand + high supply)')
                 ce_sdr4 = st.checkbox('SDR (low demand + low supply)')
             st.markdown("---")
-
+            INTs = reset_INTs()
+            b_f_intvs = set_time_int(INTs, time_comp)
+            global_vars = reset_global_vars()
             b_df = run_model(param, [0]*12, b_f_intvs, t, n_months, global_vars)
-            #b_df.dropna().reset_index().to_csv(
-            #    "/Users/tingtingji/Library/CloudStorage/Dropbox/Phd PolyU/My Projects/Postdoc in JHU/SDR_project/Dashboard/Output/Baseline.csv",
-            #    index=False)
+            b_df.dropna().reset_index().to_csv(
+               "/Users/tingtingji/Library/CloudStorage/Dropbox/Phd PolyU/My Projects/Postdoc in JHU/SDR_project/Dashboard/Output/Baseline.csv",
+               index=False)
             b_df_aggregate = get_aggregate(b_df)
             b_df_years = agg_years(b_df_aggregate, n_months)
-
+            #op_base = get_cost_effectiveness(INTs, time_comp[1], b_df, b_df, b_df_years, b_df_years, global_vars)
 
             if ce_int1:
                 INTs = reset_INTs()
                 INTs['flag_int1'] = 1
                 f_intvs = set_time_int(INTs, time_comp)
                 global_vars = reset_global_vars()
-                global_vars['supply_added'][0] = 0.2
+                global_vars['supply_added']['supply_added_INT1'] = 20
                 df = run_model(param, SDR_subcounties, f_intvs, t, n_months, global_vars)
-                #df.dropna().reset_index().to_csv("/Users/tingtingji/Library/CloudStorage/Dropbox/Phd PolyU/My Projects/Postdoc in JHU/SDR_project/Dashboard/Output/INT1.csv", index = False)
+                df.dropna().reset_index().to_csv("/Users/tingtingji/Library/CloudStorage/Dropbox/Phd PolyU/My Projects/Postdoc in JHU/SDR_project/Dashboard/Output/INT1.csv", index = False)
                 df_aggregate = get_aggregate(df)
                 df_years = agg_years(df_aggregate, n_months)
                 op_int1 = get_cost_effectiveness(INTs, time_comp[1], df_years, b_df_years, global_vars)
             else:
-                op_int1 = [0] * 13
+                op_int1 = [0] * 18
 
             if ce_int2:
                 INTs = reset_INTs()
                 INTs['flag_int2'] = 1
                 f_intvs = set_time_int(INTs, time_comp)
                 global_vars = reset_global_vars()
-                global_vars['supply_added'][1] = 0.2
+                global_vars['supply_added']['supply_added_INT2'] = 20
                 df = run_model(param, SDR_subcounties, f_intvs, t, n_months, global_vars)
-                #df.dropna().reset_index().to_csv("/Users/tingtingji/Library/CloudStorage/Dropbox/Phd PolyU/My Projects/Postdoc in JHU/SDR_project/Dashboard/Output/INT2.csv", index = False)
+                df.dropna().reset_index().to_csv("/Users/tingtingji/Library/CloudStorage/Dropbox/Phd PolyU/My Projects/Postdoc in JHU/SDR_project/Dashboard/Output/INT2.csv", index = False)
                 df_aggregate = get_aggregate(df)
                 df_years = agg_years(df_aggregate, n_months)
                 op_int2 = get_cost_effectiveness(INTs, time_comp[1], df_years, b_df_years, global_vars)
             else:
-                op_int2 = [0] * 13
+                op_int2 = [0] * 18
 
             if ce_int5:
                 INTs = reset_INTs()
                 INTs['flag_int5'] = 1
                 f_intvs = set_time_int(INTs, time_comp)
                 global_vars =  reset_global_vars()
-                global_vars['supply_added'][2] = 0.2
+                global_vars['supply_added']['supply_added_INT5'] = 20
                 df = run_model(param, SDR_subcounties, f_intvs, t, n_months, global_vars)
-                #df.dropna().reset_index().to_csv("/Users/tingtingji/Library/CloudStorage/Dropbox/Phd PolyU/My Projects/Postdoc in JHU/SDR_project/Dashboard/Output/INT5.csv", index = False)
+                df.dropna().reset_index().to_csv("/Users/tingtingji/Library/CloudStorage/Dropbox/Phd PolyU/My Projects/Postdoc in JHU/SDR_project/Dashboard/Output/INT5.csv", index = False)
                 df_aggregate = get_aggregate(df)
                 df_years = agg_years(df_aggregate, n_months)
                 op_int5 = get_cost_effectiveness(INTs, time_comp[1], df_years, b_df_years, global_vars)
             else:
-                op_int5 = [0] * 13
+                op_int5 = [0] * 18
 
             if ce_int6:
                 INTs = reset_INTs()
                 INTs['flag_int6'] = 1
                 f_intvs = set_time_int(INTs, time_comp)
                 global_vars = reset_global_vars()
-                global_vars['supply_added'][3] = 0.2
+                global_vars['supply_added']['supply_added_INT6'] = 20
                 df = run_model(param, SDR_subcounties, f_intvs, t, n_months, global_vars)
-                #df.dropna().reset_index().to_csv("/Users/tingtingji/Library/CloudStorage/Dropbox/Phd PolyU/My Projects/Postdoc in JHU/SDR_project/Dashboard/Output/INT6.csv", index = False)
+                df.dropna().reset_index().to_csv("/Users/tingtingji/Library/CloudStorage/Dropbox/Phd PolyU/My Projects/Postdoc in JHU/SDR_project/Dashboard/Output/INT6.csv", index = False)
                 df_aggregate = get_aggregate(df)
                 df_years = agg_years(df_aggregate, n_months)
                 op_int6 = get_cost_effectiveness(INTs, time_comp[1], df_years, b_df_years, global_vars)
             else:
-                op_int6 = [0] * 13
+                op_int6 = [0] * 18
 
             if ce_int1256:
                 INTs = reset_INTs()
@@ -1727,14 +1838,17 @@ with (st.form('Test')):
                 INTs['flag_int6'] = 1
                 f_intvs = set_time_int(INTs, time_comp)
                 global_vars = reset_global_vars()
-                global_vars['supply_added'] = [0.2, 0.2, 0.2, 0.2]
+                global_vars['supply_added']['supply_added_INT1'] = 20
+                global_vars['supply_added']['supply_added_INT2'] = 20
+                global_vars['supply_added']['supply_added_INT5'] = 20
+                global_vars['supply_added']['supply_added_INT6'] = 20
                 df = run_model(param, SDR_subcounties, f_intvs, t, n_months, global_vars)
-                #df.dropna().reset_index().to_csv("/Users/tingtingji/Library/CloudStorage/Dropbox/Phd PolyU/My Projects/Postdoc in JHU/SDR_project/Dashboard/Output/INT1256.csv", index = False)
+                df.dropna().reset_index().to_csv("/Users/tingtingji/Library/CloudStorage/Dropbox/Phd PolyU/My Projects/Postdoc in JHU/SDR_project/Dashboard/Output/INT1256.csv", index = False)
                 df_aggregate = get_aggregate(df)
                 df_years = agg_years(df_aggregate, n_months)
                 op_int1256 = get_cost_effectiveness(INTs, time_comp[1], df_years, b_df_years, global_vars)
             else:
-                op_int1256 = [0] * 13
+                op_int1256 = [0] * 18
 
             if ce_sdr1:
                 INTs = reset_INTs()
@@ -1744,24 +1858,27 @@ with (st.form('Test')):
                 global_vars = {
                     'ANCadded': 0.5,
                     'CHV_pushback': True,
-                    'CHV_cov': 0.9,
-                    'CHV_45': 0.03,
-                    'know_added': 0.3,
-                    'supply_added': [0.3] * 4,
-                    'capacity_added': 0.3,
+                    'CHV_cov': 1,
+                    'CHV_45': 0.04,
+                    'know_added': 0.6,
+                    'supply_added': {'supply_added_INT1': 100,
+                                     'supply_added_INT2': 100,
+                                     'supply_added_INT5': 100,
+                                     'supply_added_INT6': 100},
+                    'capacity_added': 0.8,
                     'transadded': 0,
                     'referadded': 0,
                     'ultracovhome': 0,
                     'diagnosisrate': 0,
-                    'refer_capacity': 200
+                    'refer_capacity': 300
                 }
                 df = run_model(param, SDR_subcounties, f_intvs, t, n_months, global_vars)
-                #df.dropna().reset_index().to_csv("/Users/tingtingji/Library/CloudStorage/Dropbox/Phd PolyU/My Projects/Postdoc in JHU/SDR_project/Dashboard/Output/SDR1.csv", index = False)
+                df.dropna().reset_index().to_csv("/Users/tingtingji/Library/CloudStorage/Dropbox/Phd PolyU/My Projects/Postdoc in JHU/SDR_project/Dashboard/Output/SDR1.csv", index = False)
                 df_aggregate = get_aggregate(df)
                 df_years = agg_years(df_aggregate, n_months)
                 op_sdr1 = get_cost_effectiveness(INTs, time_comp[1], df_years, b_df_years, global_vars)
             else:
-                op_sdr1 = [0] * 13
+                op_sdr1 = [0] * 18
 
             if ce_sdr2:
                 INTs = reset_INTs()
@@ -1771,24 +1888,27 @@ with (st.form('Test')):
                 global_vars = {
                     'ANCadded': 0.5,
                     'CHV_pushback': True,
-                    'CHV_cov': 0.9,
-                    'CHV_45': 0.02,
-                    'know_added': 0.1,
-                    'supply_added': [0.1] * 4,
-                    'capacity_added': 0.1,
+                    'CHV_cov': 1,
+                    'CHV_45': 0.04,
+                    'know_added': 0.2,
+                    'supply_added': {'supply_added_INT1': 5,
+                                     'supply_added_INT2': 5,
+                                     'supply_added_INT5': 5,
+                                     'supply_added_INT6': 5},
+                    'capacity_added': 0.2,
                     'transadded': 0,
                     'referadded': 0,
                     'ultracovhome': 0,
                     'diagnosisrate': 0,
-                    'refer_capacity': 200
+                    'refer_capacity': 100
                 }
                 df = run_model(param, SDR_subcounties, f_intvs, t, n_months, global_vars)
-                #df.dropna().reset_index().to_csv("/Users/tingtingji/Library/CloudStorage/Dropbox/Phd PolyU/My Projects/Postdoc in JHU/SDR_project/Dashboard/Output/SDR2.csv", index = False)
+                df.dropna().reset_index().to_csv("/Users/tingtingji/Library/CloudStorage/Dropbox/Phd PolyU/My Projects/Postdoc in JHU/SDR_project/Dashboard/Output/SDR2.csv", index = False)
                 df_aggregate = get_aggregate(df)
                 df_years = agg_years(df_aggregate, n_months)
                 op_sdr2 = get_cost_effectiveness(INTs, time_comp[1], df_years, b_df_years, global_vars)
             else:
-                op_sdr2 = [0] * 13
+                op_sdr2 = [0] * 18
 
             if ce_sdr3:
                 INTs = reset_INTs()
@@ -1796,26 +1916,29 @@ with (st.form('Test')):
                 f_intvs = set_time_int(INTs, time_comp)
                 global_vars = reset_global_vars()
                 global_vars = {
-                    'ANCadded': 0.2,
+                    'ANCadded': 0.5,
                     'CHV_pushback': True,
-                    'CHV_cov': 0.3,
-                    'CHV_45': 0.02,
-                    'know_added': 0.3,
-                    'supply_added': [0.3] * 4,
-                    'capacity_added': 0.3,
+                    'CHV_cov': 0.2,
+                    'CHV_45': 0.04,
+                    'know_added': 0.6,
+                    'supply_added': {'supply_added_INT1': 100,
+                                     'supply_added_INT2': 100,
+                                     'supply_added_INT5': 100,
+                                     'supply_added_INT6': 100},
+                    'capacity_added': 0.8,
                     'transadded': 0,
                     'referadded': 0,
                     'ultracovhome': 0,
                     'diagnosisrate': 0,
-                    'refer_capacity': 200
+                    'refer_capacity': 300
                 }
                 df = run_model(param, SDR_subcounties, f_intvs, t, n_months, global_vars)
-                #df.dropna().reset_index().to_csv("/Users/tingtingji/Library/CloudStorage/Dropbox/Phd PolyU/My Projects/Postdoc in JHU/SDR_project/Dashboard/Output/SDR3.csv", index = False)
+                df.dropna().reset_index().to_csv("/Users/tingtingji/Library/CloudStorage/Dropbox/Phd PolyU/My Projects/Postdoc in JHU/SDR_project/Dashboard/Output/SDR3.csv", index = False)
                 df_aggregate = get_aggregate(df)
                 df_years = agg_years(df_aggregate, n_months)
                 op_sdr3 = get_cost_effectiveness(INTs, time_comp[1], df_years, b_df_years, global_vars)
             else:
-                op_sdr3 = [0] * 13
+                op_sdr3 = [0] * 18
 
             if ce_sdr4:
                 INTs = reset_INTs()
@@ -1823,28 +1946,32 @@ with (st.form('Test')):
                 f_intvs = set_time_int(INTs, time_comp)
                 global_vars = reset_global_vars()
                 global_vars = {
-                    'ANCadded': 0.2,
+                    'ANCadded': 0.5,
                     'CHV_pushback': True,
-                    'CHV_cov': 0.3,
-                    'CHV_45': 0.02,
-                    'know_added': 0.1,
-                    'supply_added': [0.1] * 4,
-                    'capacity_added': 0.1,
+                    'CHV_cov': 0.2,
+                    'CHV_45': 0.04,
+                    'know_added': 0.2,
+                    'supply_added': {'supply_added_INT1': 5,
+                                     'supply_added_INT2': 5,
+                                     'supply_added_INT5': 5,
+                                     'supply_added_INT6': 5},
+                    'capacity_added': 0.2,
                     'transadded': 0,
                     'referadded': 0,
                     'ultracovhome': 0,
                     'diagnosisrate': 0,
-                    'refer_capacity': 200
+                    'refer_capacity': 100
                 }
                 df = run_model(param, SDR_subcounties, f_intvs, t, n_months, global_vars)
-                #df.dropna().reset_index().to_csv("/Users/tingtingji/Library/CloudStorage/Dropbox/Phd PolyU/My Projects/Postdoc in JHU/SDR_project/Dashboard/Output/SDR4.csv", index = False)
+                df.dropna().reset_index().to_csv("/Users/tingtingji/Library/CloudStorage/Dropbox/Phd PolyU/My Projects/Postdoc in JHU/SDR_project/Dashboard/Output/SDR4.csv", index = False)
                 df_aggregate = get_aggregate(df)
                 df_years = agg_years(df_aggregate, n_months)
                 op_sdr4 = get_cost_effectiveness(INTs, time_comp[1], df_years, b_df_years, global_vars)
             else:
-                op_sdr4 = [0] * 13
+                op_sdr4 = [0] * 18
 
             df_ce = pd.DataFrame({
+                #'Baseline': op_base,
                 'Obstetric Drape': op_int1,
                 'IV Iron Infusion': op_int2,
                 'MgSO4': op_int5,
@@ -1857,10 +1984,9 @@ with (st.form('Test')):
             }).T
             df_ce.columns = ['Cost (USD)', 'ANC Cost', 'Intervention Cost', 'Equipment Cost',
                              'Delivery Cost', 'C-section Cost', 'Labor Cost', 'Infrastructure Cost',
-                             'CHV Cost', 'Access Cost', 'Added ANC (%)', 'Added facility deliveries (%)', 'DALY averted']
+                             'CHV Cost', 'Access Cost', 'PPH', 'Eclampsia', 'Sepsis', 'Obstructed', 'Others', 'Added ANC (%)', 'Added facility deliveries (%)', 'DALY averted']
             df_ce['Cost per DALY averted'] = df_ce['Cost (USD)'] / df_ce['DALY averted']
-            df_ce.iloc[:, :-1] = df_ce.iloc[:, :-1].round(0)
-            df_ce.iloc[:, -1] = df_ce.iloc[:, -1].round(1)
+            df_ce.iloc[:,:] = df_ce.iloc[:,:].round(1)
             df_ce = df_ce.dropna()
             tab1, tab2, tab3 = st.tabs(['Table', 'Pie chart', 'Bar chart'])
             with tab1:
