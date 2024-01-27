@@ -1767,9 +1767,7 @@ with ((st.form('Test'))):
             b_f_intvs = set_time_int(INTs, time_comp)
             global_vars = reset_global_vars()
             b_df = run_model(param, [0]*12, b_f_intvs, t, n_months, global_vars)
-            #b_df.dropna().reset_index().to_csv(
-               "/Users/tingtingji/Library/CloudStorage/Dropbox/Phd PolyU/My Projects/Postdoc in JHU/SDR_project/Dashboard/Output/Baseline.csv",
-               index=False)
+            #b_df.dropna().reset_index().to_csv("/Users/tingtingji/Library/CloudStorage/Dropbox/Phd PolyU/My Projects/Postdoc in JHU/SDR_project/Dashboard/Output/Baseline.csv"，index=False)
             b_df_aggregate = get_aggregate(b_df)
             b_df_years = agg_years(b_df_aggregate, n_months)
             #op_base = get_cost_effectiveness(INTs, time_comp[1], b_df, b_df, b_df_years, b_df_years, global_vars)
