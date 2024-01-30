@@ -127,6 +127,7 @@ with st.sidebar:
         plotA_options = ("Pathways","Live births",
                          "Maternal deaths", "MMR",
                          "Complications", "Complication rate",
+                         "Neonatal deaths", "NMR",
                          "Cost effectiveness",
                          "ANC rate",
                          "Capacity ratio",
@@ -184,7 +185,7 @@ with col1:
             flag_sdr = 1
             flag_CHV = 1
             CHV_cov = st.slider("CHV Coverage", min_value=0.0, max_value=1.0, step=0.1, value=0.5)
-            CHV_45 = st.slider("CHV effect on delivery at L4/5", min_value=0.00, max_value=0.10, step=0.01, value=0.02)
+            CHV_45 = st.slider("CHV effect on delivery at L4/5", min_value=0.00, max_value=0.10, step=0.01, value=0.04)
             CHV_pushback = True
             flag_ANC = 1
             ANCadded = st.slider('CHV effect on 4+ANCs', min_value=0.0, max_value=1.2, step=0.1, value=0.2)
@@ -194,7 +195,7 @@ with col2:
     col2_1, col2_2 = st.columns(2)
     with col2_1:
         st.text('Apply interventions')
-        facint = st.checkbox('L4/5 Facility upgrade')
+        facint = st.checkbox('Upgrade L4/5 facilities')
     with col2_2:
         st.text('Adjust parameters')
         if facint:
@@ -202,8 +203,8 @@ with col2:
             know_added = st.slider("Improve knowledge of healthcare workers", min_value=0.0, max_value=1.0,
                                    step=0.1, value=0.2)
             capacity_added = st.slider("Improve facility capacity (labor, equipment, infrastructure)", min_value=0.0, max_value=1.0, step=0.1,
-                                       value=0.2)
-            supply_added = st.slider("Improve single-intervention inventory", min_value=0, max_value=20, step=1,
+                                       value=0.5)
+            supply_added = st.slider("Improve inventory of all single interventions", min_value=0, max_value=20, step=1,
                                      value=1)
             supply_added_INT1 = supply_added
             supply_added_INT2 = supply_added
@@ -217,7 +218,7 @@ with col2:
         if refint:
             flag_sdr = 1
             refer_capacity = st.slider('Improve referral capacity (per subcounty per month)', min_value=100, max_value=300,
-                                       step=1, value=100)
+                                       step=1, value=200)
 
 with col3:
     st.subheader("Single interventions")
@@ -281,12 +282,12 @@ with ((st.form('Test'))):
     ### parameters
     def get_parameters():
         param = {
-            'pre_comp_home': 0.0225359774,
-            'pre_comp_l23': 0.0225359774,
-            'pre_comp_l4': 0.0417,
-            'pre_comp_l5': 0.07219193223,
+            'pre_comp_home': 0.015,
+            'pre_comp_l23': 0.017,
+            'pre_comp_l4': 0.031,
+            'pre_comp_l5': 0.128,
             'complication_rate': 0.032,
-            'p_comp_severe': 0.358,
+            'p_comp_severe': 0.216,
             'p_comp_ol': 0.01,
             'p_comp_other': 0.0044,
             'p_comp_anemia': 0.25,
@@ -298,21 +299,21 @@ with ((st.form('Test'))):
             'or_anemia_eclampsia': 3.74,
             'or_anc_anemia': 2.26,
             't_home_l23': 0,
-            't_home_l4': 0.75,
-            't_home_l5': 0.19,
-            't_l23_l4': 14.14,
-            't_l23_l5': 18.05,
+            't_home_l4': 24.7,
+            't_home_l5': 10.335,
+            't_l23_l4': 49.36,
+            't_l23_l5': 24.422,
             't_l4_l4': 0,
-            't_l4_l5': 9.73,
-            'm_l_home': 0.1,
-            'm_l_l23': 0.1,
-            'm_l_l4': 0.1,
-            'm_l_l5': 0.1,
+            't_l4_l5': 21.684,
+            'm_l_home': 0.005,
+            'm_l_l23': 0.004,
+            'm_l_l4': 0.004,
+            'm_l_l5': 0.003,
             'm_h_home': 25,
-            'm_h_l23': 25,
-            'm_h_l4': 6,
-            'm_h_l5': 3,
-            'm_t': 2,
+            'm_h_l23': 5.18,
+            'm_h_l4': 5,
+            'm_h_l5': 4.93,
+            'm_t': 3.35,
             'i_int1': 0.6,
             'i_int2': 0.7,
             'i_int5': 0.59,
@@ -321,8 +322,8 @@ with ((st.form('Test'))):
             'i_int2_supplies': 0.17,
             'i_int5_supplies': 0.959,
             'i_int6_supplies': 1,
+            'nd_ratio': np.array([28, 28, 19.2, 2])
         }
-
         return param
 
     n_months = 36
@@ -736,7 +737,8 @@ with ((st.form('Test'))):
                  'sepsis': 0.133,
                  'eclampsia': 0.602,
                  'obstructed labor': 0.324,
-                 'death': 0.54
+                 'death': 0.54,
+                 'neonatal death': 1
         }
 
 
@@ -805,9 +807,10 @@ with ((st.form('Test'))):
             eclampsia1 = np.sum(b_df_years.loc[i, 'Complications-Health'], axis=1)[2]
             obstructed1 = np.sum(b_df_years.loc[i, 'Complications-Health'], axis=1)[3]
             maternal_deaths1 = np.sum(b_df_years.loc[i, 'Deaths'])
+            neonatal_deaths1 = np.sum(b_df_years.loc[i, 'Neonatal Deaths'])
             b_DALYs1 = (DALYs['low pph'] * low_pph1 + DALYs['high pph'] * high_pph1
                         + DALYs['sepsis'] * sepsis1 + DALYs['eclampsia'] * eclampsia1 + DALYs['obstructed labor'] * obstructed1
-                        + DALYs['death'] * maternal_deaths1 )* 62.63
+                        + DALYs['death'] * maternal_deaths1)* 62.63 + DALYs['neonatal death'] * neonatal_deaths1 * 60.25
             b_low_pph_all += low_pph1
             b_high_pph_all += high_pph1
             b_eclampsia_all += eclampsia1
@@ -823,9 +826,10 @@ with ((st.form('Test'))):
             obstructed1 = np.sum(df_years.loc[i, 'Complications-Health'], axis=1)[3]
             other1 = np.sum(df_years.loc[i, 'Complications-Health'], axis=1)[4]
             maternal_deaths1 = np.sum(df_years.loc[i, 'Deaths'])
+            neonatal_deaths1 = np.sum(df_years.loc[i, 'Neonatal Deaths'])
             i_DALYs1 = (DALYs['low pph'] * low_pph1 + DALYs['high pph'] * high_pph1
                         + DALYs['sepsis'] * sepsis1 + DALYs['eclampsia'] * eclampsia1 + DALYs['obstructed labor'] * obstructed1
-                        + DALYs['death'] * maternal_deaths1) * 62.63
+                        + DALYs['death'] * maternal_deaths1) * 62.63 + DALYs['neonatal death'] * neonatal_deaths1 * 60.25
             low_pph_all += low_pph1
             high_pph_all += high_pph1
             pph_all = low_pph_all + high_pph_all
@@ -998,7 +1002,7 @@ with ((st.form('Test'))):
                                                    'Capacity Ratio', 'Push Back', 'INT1 cover', 'INT2 cover',
                                                    'INT5 cover', 'INT6 cover',
                                                    'Normal Referral', 'Complication Referral',
-                                                   'Referral capacity ratio', 'Mothers with INT1', 'Mothers with INT2', 'Mothers with INT5', 'Mothers with INT6'])
+                                                   'Referral capacity ratio', 'Mothers with INT1', 'Mothers with INT2', 'Mothers with INT5', 'Mothers with INT6','Neonatal Deaths'])
 
         for i in t:
             LB_tot_i = np.zeros(4)
@@ -1072,6 +1076,8 @@ with ((st.form('Test'))):
                     df_3d.loc[(j, i), 'Mothers with INT5'] = comps_all[2] * i_INT['int5']['coverage'][j]
                     #sepsis covered
                     df_3d.loc[(j, i), 'Mothers with INT6'] = comps_all[1] * i_INT['int6']['coverage'][j]
+                    #df_3d.loc[(j, i), 'Neonatal Deaths'] = np.sum(comps_health, axis=0)[0] * param['nd_ratio']
+                    df_3d.loc[(j, i), 'Neonatal Deaths'] = f_deaths * param['nd_ratio']
 
                 if j != 5:
                     Capacity_ratio[i, j] = np.sum(sc_time['LB1s'][j][i, 2:3]) / Capacity[j]
@@ -1264,7 +1270,7 @@ with ((st.form('Test'))):
         df_b_outcomes = b_outcomes.dropna().reset_index()
 
         ##########Genertate outcomes for plotting#########
-        # # Subcounty level live birth and MMR
+        # # Subcounty level live birth and MMR and NMR
         LB_SC = np.concatenate(df_outcomes['Live Births Final'].values).reshape(-1, 4)
         LB_SC = np.column_stack((LB_SC, np.sum(LB_SC, axis=1)))
         LBtot = LB_SC[:, -1]
@@ -1276,9 +1282,15 @@ with ((st.form('Test'))):
         bMM_SC = np.array(np.column_stack((bMM_SC, np.sum(bMM_SC, axis=1))), dtype=np.float64)
         MM_SC = np.concatenate(df_outcomes['Deaths'].values).reshape(-1, 4)
         MM_SC = np.array(np.column_stack((MM_SC, np.sum(MM_SC, axis=1))), dtype=np.float64)
+        bNM_SC = np.concatenate(df_b_outcomes['Neonatal Deaths'].values).reshape(-1, 4)
+        bNM_SC = np.array(np.column_stack((bNM_SC, np.sum(bMM_SC, axis=1))), dtype=np.float64)
+        NM_SC = np.concatenate(df_outcomes['Neonatal Deaths'].values).reshape(-1, 4)
+        NM_SC = np.array(np.column_stack((NM_SC, np.sum(MM_SC, axis=1))), dtype=np.float64)
 
         MMR_SC = np.array(np.divide(MM_SC, LB_SC) * 1000, dtype=np.float64)
         bMMR_SC = np.array(np.divide(bMM_SC, bLB_SC) * 1000, dtype=np.float64)
+        NMR_SC = np.array(np.divide(NM_SC, LB_SC) * 1000, dtype=np.float64)
+        bNMR_SC = np.array(np.divide(bNM_SC, bLB_SC) * 1000, dtype=np.float64)
 
         bLB_SC = np.hstack((df_b_outcomes[['Subcounty', 'Time']], bLB_SC))
         LB_SC = np.hstack((df_outcomes[['Subcounty', 'Time']], LB_SC))
@@ -1286,6 +1298,10 @@ with ((st.form('Test'))):
         MM_SC = np.hstack((df_outcomes[['Subcounty', 'Time']], MM_SC))
         bMMR_SC = np.hstack((df_b_outcomes[['Subcounty', 'Time']], bMMR_SC))
         MMR_SC = np.hstack((df_outcomes[['Subcounty', 'Time']], MMR_SC))
+        bNM_SC = np.hstack((df_b_outcomes[['Subcounty', 'Time']], bNM_SC))
+        NM_SC = np.hstack((df_outcomes[['Subcounty', 'Time']], NM_SC))
+        bNMR_SC = np.hstack((df_b_outcomes[['Subcounty', 'Time']], bNMR_SC))
+        NMR_SC = np.hstack((df_outcomes[['Subcounty', 'Time']], NMR_SC))
 
         # #Subcounty level complications
         Com_SC = np.array([np.sum(arr, axis=1) for arr in df_outcomes['Complications-Health']], dtype=np.float64)
@@ -1718,10 +1734,10 @@ with ((st.form('Test'))):
                         '*Note, relationships assumed based on literature values for factors not explicitly measured in the data, i.e. antenatal care and anemia.')
                     if np.array(b_lb_anc - lb_anc)[0][0] > 0:
                         st.markdown(
-                            f'The intervention increased antenatal care by ~ **{round(np.array(b_lb_anc - lb_anc)[0][0])}%**.')
+                            f'The intervention increased antenatal care rate by ~ **{round((np.array(b_lb_anc - lb_anc)[0][0])/np.sum(b_lb_anc, axis = 1)[0], ndigits = 2) * 100}%** in 3rd year.')
                     if np.sum(np.array(b_comp_health - comp_health)[:, 0]) > 0:
                         st.markdown(
-                            f'The intervention reduced the number of deaths by ~ **{round(np.sum(np.array(b_comp_health - comp_health)[:, 0]))}**.')
+                            f'The intervention reduced the number of maternal deaths by ~ **{round(np.sum(np.array(b_comp_health - comp_health)[:, 0]))}** in 3rd year.')
 
             with tab2:
                 st.markdown(
@@ -1743,7 +1759,7 @@ with ((st.form('Test'))):
                             f'The intervention reduced the number of transfers to L4/5 facilities by ~ **{-round(np.sum(np.array(b_lb_lb - lb_lb)[0:2, 2:4]))}.**')
                     if np.sum(np.array(b_q_outcomes - q_outcomes)[:, 0]) > 0:
                         st.markdown(
-                            f'The intervention reduced the number of deaths by ~ **{round(np.sum(np.array(b_q_outcomes - q_outcomes)[:, 0]))}**.')
+                            f'The intervention reduced the number of maternal deaths by ~ **{round(np.sum(np.array(b_q_outcomes - q_outcomes)[:, 0]))}** in 3rd year.')
 
         if selected_plotA == "Cost effectiveness":
             st.markdown("<h3 style='text-align: left;'>Select the interventions to compare cost-effectiveness</h3>",
@@ -2031,6 +2047,9 @@ with ((st.form('Test'))):
         if selected_plotA == "Live births":
             st.markdown("<h3 style='text-align: left;'>Live births</h3>",
                         unsafe_allow_html=True)
+            st.markdown("(Note: Interventions and parameters that can change this outcome are shown as follows:)")
+            st.markdown("****SDR Demand:** Employ CHVs -> CHV coverage, CHV effect on delivery at L4/5")
+            st.markdown("****SDR Supply:** Upgrade L4/5 -> Improve facility capacity; Upgrade rescue -> Improve referral capacity")
 
             tab1, tab2, tab3 = st.tabs(["Line plots", "Pie charts", "Bar charts"])
             with tab1:
@@ -2071,7 +2090,6 @@ with ((st.form('Test'))):
                 countybarplots(bCom_SC, Com_SC, comcols, "Number of complications")
 
         if selected_plotA == "Maternal deaths":
-
             st.markdown("<h3 style='text-align: left;'>Maternal deaths</h3>",
                         unsafe_allow_html=True)
             tab1, tab3 = st.tabs(["Line plots", "Bar charts"])
@@ -2085,16 +2103,25 @@ with ((st.form('Test'))):
                 with col1:
                     countylineplots(MM_SC[:, :6], faccols[:6],1, "Number of maternal deaths", 50 / 12)
 
-            # with tab2:
-            #     p_title = ['Baseline in month 36', 'Intervention in month 36']
-            #     col0, col1 = st.columns(2)
-            #     with col0:
-            #         countypieplots(bMM_SC[:, :6], faccols[:6],0)
-            #     with col1:
-            #         countypieplots(MM_SC[:, :6], faccols[:6],1)
-
             with tab3:
                 countybarplots(bMM_SC[:, :6], MM_SC[:, :6], faccols[:6], "Number of maternal deaths")
+
+        if selected_plotA == "Neonatal deaths":
+            st.markdown("<h3 style='text-align: left;'>Neonatal deaths</h3>",
+                        unsafe_allow_html=True)
+            tab1, tab3 = st.tabs(["Line plots", "Bar charts"])
+            with tab1:
+                options = ['Home', 'L2/3', 'L4', 'L5']
+                selected_options = st.multiselect('Select levels', options)
+                p_title = ['Baseline', 'Intervention']
+                col0, col1 = st.columns(2)
+                with col0:
+                    countylineplots(bNM_SC[:, :6], faccols[:6], 0, "Number of neonatal deaths", 120)
+                with col1:
+                    countylineplots(NM_SC[:, :6], faccols[:6],1, "Number of neonatal deaths", 120)
+
+            with tab3:
+                countybarplots(bNM_SC[:, :6], NM_SC[:, :6], faccols[:6], "Number of neonatal deaths")
 
         if selected_plotA == "Complication rate":
             st.markdown("<h3 style='text-align: left;'>Complications per 1000 live births</h3>",
@@ -2132,6 +2159,21 @@ with ((st.form('Test'))):
                 with col1:
                     chart = lineplots(df2, p_title[1], "ComR", "Complication rate", ymax)
                     st.altair_chart(chart)
+        def createcountyyearRatedf(LBdf, MMdf, cols):
+            df1 = pd.DataFrame(LBdf)
+            df2 = pd.DataFrame(MMdf)
+            df1.columns = cols
+            df1 = df1.melt(id_vars=['Subcounty', 'month'], var_name='level', value_name='value')
+            df1 = df1.groupby(['level'])['value'].sum().reset_index()
+            df1.rename(columns={df1.columns[1]: 'LB'}, inplace=True)
+            df2.columns = cols
+            df2 = df2.melt(id_vars=['Subcounty', 'month'], var_name='level', value_name='value')
+            df2 = df2.groupby(['level'])['value'].sum().reset_index()
+            df2.rename(columns={df2.columns[1]: 'MM'}, inplace=True)
+            df = pd.merge(df1, df2, on=['level'], how='left')
+            df['MMR'] = df['MM'] / df['LB'] * 1000
+            Ratedf = df
+            return Ratedf
 
         if selected_plotA == "MMR":
             st.markdown("<h3 style='text-align: left;'>Maternal deaths per 1000 live births (MMR)</h3>",
@@ -2150,28 +2192,39 @@ with ((st.form('Test'))):
                     countyRatelineplot(LB_SC[:, :6], MM_SC[:, :6], 1, faccols[:6], "MMR", 2)
 
             with tab2:
-                def createcountyyearRatedf(LBdf, MMdf, cols):
-                    df1 = pd.DataFrame(LBdf)
-                    df2 = pd.DataFrame(MMdf)
-                    df1.columns = cols
-                    df1 = df1.melt(id_vars=['Subcounty', 'month'], var_name='level', value_name='value')
-                    df1 = df1.groupby(['level'])['value'].sum().reset_index()
-                    df1.rename(columns={df1.columns[1]: 'LB'}, inplace=True)
-                    df2.columns = cols
-                    df2 = df2.melt(id_vars=['Subcounty', 'month'], var_name='level', value_name='value')
-                    df2 = df2.groupby(['level'])['value'].sum().reset_index()
-                    df2.rename(columns={df2.columns[1]: 'MM'}, inplace=True)
-                    df = pd.merge(df1, df2, on=['level'], how='left')
-                    df['MMR'] = df['MM'] / df['LB'] * 1000
-                    Ratedf = df
-                    return Ratedf
+
                 df1 = createcountyyearRatedf(bLB_SC[:, :6], bMM_SC[:, :6], faccols[:6])
                 df2 = createcountyyearRatedf(LB_SC[:, :6], MM_SC[:, :6], faccols[:6])
                 df1['Scenario'] = 'Baseline'
                 df2['Scenario'] = 'Intervention'
                 df = pd.concat([df1, df2], ignore_index=True)
-                #df = df[df['month'] == 35]
                 chart = barplots(df, "MMR", "MMR")
+                st.altair_chart(chart)
+
+        if selected_plotA == "NMR":
+            st.markdown("<h3 style='text-align: left;'>Neonatal deaths per 1000 live births (NMR)</h3>",
+                        unsafe_allow_html=True)
+
+            tab1, tab2 = st.tabs(["Line plots", "Bar charts"])
+            p_title = ['Baseline', 'Intervention']
+
+            with tab1:
+                options = ['Home', 'L2/3', 'L4', 'L5']
+                selected_options = st.multiselect('Select levels', options)
+                col0, col1 = st.columns(2)
+                with col0:
+                    countyRatelineplot(bLB_SC[:, :6], bNM_SC[:, :6],0, faccols[:6], "NMR", 60)
+                with col1:
+                    countyRatelineplot(LB_SC[:, :6], NM_SC[:, :6], 1, faccols[:6], "NMR", 60)
+
+            with tab2:
+
+                df1 = createcountyyearRatedf(bLB_SC[:, :6], bNM_SC[:, :6], faccols[:6])
+                df2 = createcountyyearRatedf(LB_SC[:, :6], NM_SC[:, :6], faccols[:6])
+                df1['Scenario'] = 'Baseline'
+                df2['Scenario'] = 'Intervention'
+                df = pd.concat([df1, df2], ignore_index=True)
+                chart = barplots(df, "MMR", "NMR")
                 st.altair_chart(chart)
 
         def subcountyplots(df, ptitle, ytitle, ymax):
