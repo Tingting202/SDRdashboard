@@ -274,6 +274,21 @@ with col3:
                 supply_added_INT6 = 0
             else:
                 supply_added_INT6 = supply_added_INT6
+st.markdown("~~~")
+if selected_plotA == "Pathways":
+    st.markdown("<h3 style='text-align: left;'>Pathways</h3>",
+                unsafe_allow_html=True)
+    st.markdown("**Scenario testing guidance:** Interventions and parameters that can change this outcome:")
+    st.markdown("**SDR Demand: all parameters")
+    st.markdown("**SDR Supply: all parameters")
+    st.markdown("**Single Interventions: all parameters")
+
+if selected_plotA == "Live births":
+    st.markdown("<h3 style='text-align: left;'>Live births</h3>",
+                unsafe_allow_html=True)
+    st.markdown("**Scenario testing guidance:** Interventions and parameters that can change this outcome:")
+    st.markdown("**SDR Demand: Employ CHVs -> CHV coverage, CHV effect on delivery at L4/5")
+    st.markdown("**SDR Supply: Upgrade L4/5 -> Improve facility capacity; Upgrade rescue -> Improve referral capacity")
 
 with ((st.form('Test'))):
     ### PARAMETERs ###
@@ -1023,9 +1038,6 @@ with ((st.form('Test'))):
                                          i_INT['int2']['effect'][j]
                     probs.extend([p_anc_anemia, p_anemia_pph, p_anemia_sepsis, p_anemia_eclampsia])
 
-                    #st.text(i_INT['int2']['effect'][j])
-
-
                     sc_time['LB1s'][j][i, :], Push_back[i, j] = f_LB_effect(sc_time['LB1s'][j][0, :], com_ref[j, i - 1],
                                                                             sc_time['LB1s'][j][i - 1, :], i_INT,
                                                                             flag_pushback, j, i, Capacity_ratio[:, j],
@@ -1555,32 +1567,34 @@ with ((st.form('Test'))):
                         target.append(sankey_dict[matx.columns[j]])
                         value.append((matx.iloc[i, j]))
 
-            fig = go.Figure(data=[go.Sankey(
-                arrangement='snap',
-                node=dict(
-                    pad=15,
-                    thickness=20,
-                    line=dict(color='black', width=0.5),
-                    label=nodes,
-                    x=[0, 1 / 5, 1 / 5, 2 / 5, 2 / 5, 3 / 5, 3 / 5, 3 / 5, 3 / 5, 3 / 5, 4 / 5, 4 / 5, 5 / 5, 5 / 5,
-                       5 / 5, 5 / 5],
-                    y=[1, 0.5, 0.5, 0.5, 0.5, 0.25, 0.25, 0.25, 0.25, 0.25, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
-                ),
-                link=dict(
-                    source=source,
-                    target=target,
-                    value=value
-                )
-            )])
+            def plt_pathway1a(source, target, value):
+                fig = go.Figure(data=[go.Sankey(
+                    arrangement='snap',
+                    node=dict(
+                        pad=15,
+                        thickness=20,
+                        line=dict(color='black', width=0.5),
+                        label=nodes,
+                        x=[0, 1 / 5, 1 / 5, 2 / 5, 2 / 5, 3 / 5, 3 / 5, 3 / 5, 3 / 5, 3 / 5, 4 / 5, 4 / 5, 5 / 5, 5 / 5,
+                           5 / 5, 5 / 5],
+                        y=[1, 0.5, 0.5, 0.5, 0.5, 0.25, 0.25, 0.25, 0.25, 0.25, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
+                    ),
+                    link=dict(
+                        source=source,
+                        target=target,
+                        value=value
+                    )
+                )])
 
-            # Update the layout
-            fig.update_layout(title_text="Baseline",
-                              font_size=10,
-                              autosize=False,
-                              width=600,
-                              height=500)
+                # Update the layout
+                fig.update_layout(title_text=" ",
+                                  font_size=10,
+                                  autosize=False,
+                                  width=600,
+                                  height=500)
+                return fig
 
-            fig1_b = fig
+            fig1_b = plt_pathway1a(source, target, value)
 
             source = []
             target = []
@@ -1594,33 +1608,34 @@ with ((st.form('Test'))):
                         target.append(sankey_dict[matx.columns[j]])
                         value.append(int(round(matx.iloc[i, j])))
 
-            fig = go.Figure(data=[go.Sankey(
-                arrangement='snap',
-                node=dict(
-                    pad=15,
-                    thickness=20,
-                    line=dict(color='black', width=0.5),
-                    label=nodes,
-                    x=[0, 1 / 5, 1 / 5, 2 / 5, 2 / 5, 3 / 5, 3 / 5, 3 / 5, 3 / 5, 3 / 5, 4 / 5, 4 / 5, 5 / 5, 5 / 5,
-                       5 / 5, 5 / 5],
-                    y=[1, 0.5, 0.5, 0.5, 0.5, 0.25, 0.25, 0.25, 0.25, 0.25, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
-                ),
-                link=dict(
-                    source=source,
-                    target=target,
-                    value=value
-                )
-            )])
+            def plt_pathway1b(source, target, value):
+                fig = go.Figure(data=[go.Sankey(
+                    arrangement='snap',
+                    node=dict(
+                        pad=15,
+                        thickness=20,
+                        line=dict(color='black', width=0.5),
+                        label=nodes,
+                        x=[0, 1 / 5, 1 / 5, 2 / 5, 2 / 5, 3 / 5, 3 / 5, 3 / 5, 3 / 5, 3 / 5, 4 / 5, 4 / 5, 5 / 5, 5 / 5,
+                           5 / 5, 5 / 5],
+                        y=[1, 0.5, 0.5, 0.5, 0.5, 0.25, 0.25, 0.25, 0.25, 0.25, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
+                    ),
+                    link=dict(
+                        source=source,
+                        target=target,
+                        value=value
+                    )
+                )])
 
-            # Update the layout
-            fig.update_layout(title_text="Intervention",
-                              font_size=10,
-                              autosize=False,
-                              width=600,
-                              height=500)
-
+                # Update the layout
+                fig.update_layout(title_text="",
+                                  font_size=10,
+                                  autosize=False,
+                                  width=600,
+                                  height=500)
+                return fig
             # Show the plot
-            fig1 = fig
+            fig1 = plt_pathway1b(source, target, value)
 
             ########################################################################################################################
 
@@ -1653,31 +1668,34 @@ with ((st.form('Test'))):
 
                         # Define the nodes
             # Create the Sankey diagram
-            fig = go.Figure(data=[go.Sankey(
-                arrangement='snap',
-                node=dict(
-                    pad=15,
-                    thickness=20,
-                    line=dict(color='black', width=0.5),
-                    label=nodes,
-                    x=[0, 1 / 4, 1 / 4, 1 / 4, 1 / 4, 1 / 2, 1 / 2, 1 / 2, 1 / 2, 3 / 4, 3 / 4, 1, 1, 1, 1],
-                    y=[1, 0, 0.25 * 1, 0.25 * 2, 0.25 * 3, 0, 0.25 * 1, 0.25 * 2, 0.25 * 3, 0, 0.5, 0.8, 0.8, 0.8, 0.8]
-                ),
-                link=dict(
-                    source=source,
-                    target=target,
-                    value=value
-                )
-            )])
 
-            # Update the layout
-            fig.update_layout(title_text="Baseline",
-                              font_size=10,
-                              autosize=False,
-                              width=600,
-                              height=500)
+            def plt_pathway2a(source, target, value):
+                fig = go.Figure(data=[go.Sankey(
+                    arrangement='snap',
+                    node=dict(
+                        pad=15,
+                        thickness=20,
+                        line=dict(color='black', width=0.5),
+                        label=nodes,
+                        x=[0, 1 / 4, 1 / 4, 1 / 4, 1 / 4, 1 / 2, 1 / 2, 1 / 2, 1 / 2, 3 / 4, 3 / 4, 1, 1, 1, 1],
+                        y=[1, 0, 0.25 * 1, 0.25 * 2, 0.25 * 3, 0, 0.25 * 1, 0.25 * 2, 0.25 * 3, 0, 0.5, 0.8, 0.8, 0.8, 0.8]
+                    ),
+                    link=dict(
+                        source=source,
+                        target=target,
+                        value=value
+                    )
+                )])
 
-            fig2_b = fig
+                # Update the layout
+                fig.update_layout(title_text="Baseline",
+                                  font_size=10,
+                                  autosize=False,
+                                  width=600,
+                                  height=500)
+                return fig
+
+            fig2_b = plt_pathway2a(source, target, value)
 
             source = []
             target = []
@@ -1692,52 +1710,82 @@ with ((st.form('Test'))):
 
                         # Define the nodes
             # Create the Sankey diagram
-            fig = go.Figure(data=[go.Sankey(
-                arrangement='snap',
-                node=dict(
-                    pad=15,
-                    thickness=20,
-                    line=dict(color='black', width=0.5),
-                    label=nodes,
-                    x=[0, 1 / 4, 1 / 4, 1 / 4, 1 / 4, 1 / 2, 1 / 2, 1 / 2, 1 / 2, 3 / 4, 3 / 4, 1, 1, 1, 1],
-                    y=[1, 0, 0.25 * 1, 0.25 * 2, 0.25 * 3, 0, 0.25 * 1, 0.25 * 2, 0.25 * 3, 0, 0.5, 0.8, 0.8, 0.8, 0.8]
-                ),
-                link=dict(
-                    source=source,
-                    target=target,
-                    value=value
-                )
-            )])
 
-            # Update the layout
-            fig.update_layout(title_text="Intervention",
-                              font_size=10,
-                              autosize=False,
-                              width=600,
-                              height=500)
+            def plt_pathway2b(source, target, value):
+                fig = go.Figure(data=[go.Sankey(
+                    arrangement='snap',
+                    node=dict(
+                        pad=15,
+                        thickness=20,
+                        line=dict(color='black', width=0.5),
+                        label=nodes,
+                        x=[0, 1 / 4, 1 / 4, 1 / 4, 1 / 4, 1 / 2, 1 / 2, 1 / 2, 1 / 2, 3 / 4, 3 / 4, 1, 1, 1, 1],
+                        y=[1, 0, 0.25 * 1, 0.25 * 2, 0.25 * 3, 0, 0.25 * 1, 0.25 * 2, 0.25 * 3, 0, 0.5, 0.8, 0.8, 0.8, 0.8]
+                    ),
+                    link=dict(
+                        source=source,
+                        target=target,
+                        value=value
+                    )
+                )])
 
+                # Update the layout
+                fig.update_layout(title_text="",
+                                  font_size=10,
+                                  autosize=False,
+                                  width=600,
+                                  height=500)
+
+                return fig
             # Show the plot
-            fig2 = fig
+            fig2 = plt_pathway2b(source, target, value)
 
             ########################################################################################################################
             tab1, tab2 = st.tabs(["Complication pathway", "Facility pathway"])
             with tab1:
                 st.markdown("<h3 style='text-align: left;'>Subset of Mothers' Health through Pregnancy, Labor, and Delivery</h3>",
                             unsafe_allow_html=True)
+                st.markdown('**Intervention Scenarios**')
                 col1, col2 = st.columns(2)
                 with col1:
-                    st.plotly_chart(fig1_b)
+                    st.markdown('**Previous Run**')
+                    previous_plot = st.session_state.get('previous_plot', None)
+                    previous_anc_improve = st.session_state.get('previous_anc_improve', None)
+                    previous_death_improve = st.session_state.get('previous_death_improve', None)
+                    if previous_plot is not None and previous_anc_improve is not None and previous_death_improve is not None:
+                        st.plotly_chart(previous_plot)
+                        st.markdown(
+                            f'The intervention increased antenatal care rate by ~ **{previous_anc_improve}%** in 3rd year.')
+                        if previous_death_improve > 0:
+                            st.markdown(
+                                f'The intervention reduced the number of maternal deaths by ~ **{previous_death_improve}** in 3rd year.')
+                        else:
+                            st.markdown(
+                                f'The intervention reduced the number of maternal deaths by ~ **{0}** in 3rd year.')
+                    else:
+                        st.plotly_chart(fig1_b)
 
                 with col2:
+                    st.markdown('**Current Run**')
                     st.plotly_chart(fig1)
+                    st.session_state.previous_plot = fig1
                     st.caption(
                         '*Note, relationships assumed based on literature values for factors not explicitly measured in the data, i.e. antenatal care and anemia.')
-                    if np.array(b_lb_anc - lb_anc)[0][0] > 0:
+                    anc_improve = round((np.array(b_lb_anc - lb_anc)[0][0])/np.sum(b_lb_anc, axis = 1)[0], ndigits = 2) * 100
+                    st.session_state.previous_anc_improve = anc_improve
+                    st.markdown(
+                        f'The intervention increased antenatal care rate by ~ **{anc_improve}%** in 3rd year.')
+                    death_improve = round(np.sum(np.array(b_comp_health - comp_health)[:, 0]))
+                    st.session_state.previous_death_improve = death_improve
+                    if death_improve > 0:
                         st.markdown(
-                            f'The intervention increased antenatal care rate by ~ **{round((np.array(b_lb_anc - lb_anc)[0][0])/np.sum(b_lb_anc, axis = 1)[0], ndigits = 2) * 100}%** in 3rd year.')
-                    if np.sum(np.array(b_comp_health - comp_health)[:, 0]) > 0:
+                            f'The intervention reduced the number of maternal deaths by ~ **{death_improve}** in 3rd year.')
+                    else:
                         st.markdown(
-                            f'The intervention reduced the number of maternal deaths by ~ **{round(np.sum(np.array(b_comp_health - comp_health)[:, 0]))}** in 3rd year.')
+                            f'The intervention reduced the number of maternal deaths by ~ **{0}** in 3rd year.')
+            st.markdown('---')
+            st.markdown('**Baseline Scenario**')
+            st.plotly_chart(fig1_b)
 
             with tab2:
                 st.markdown(
@@ -1745,10 +1793,17 @@ with ((st.form('Test'))):
                     unsafe_allow_html=True)
                 col1, col2 = st.columns(2)
                 with col1:
-                    st.plotly_chart(fig2_b)
+                    st.markdown('**Previous Run**')
+                    previous_plot2 = st.session_state.get('previous_plot2', None)
+                    if previous_plot2 is not None:
+                        st.plotly_chart(previous_plot2)
+                    else:
+                        st.plotly_chart(fig2_b)
 
                 with col2:
+                    st.markdown('**Current Run**')
                     st.plotly_chart(fig2)
+                    st.session_state.previous_plot2 = fig2
                     st.caption(
                         '*Note, relationships assumed based on literature values for factors not explicitly measured in the data, i.e. antenatal care and anemia.')
                     if np.sum(np.array(b_m_lb - m_lb)[0][2:4]) > 0:
@@ -2045,11 +2100,11 @@ with ((st.form('Test'))):
                 st.text('To be continued')
 
         if selected_plotA == "Live births":
-            st.markdown("<h3 style='text-align: left;'>Live births</h3>",
-                        unsafe_allow_html=True)
-            st.markdown("(Note: Interventions and parameters that can change this outcome are shown as follows:)")
-            st.markdown("****SDR Demand:** Employ CHVs -> CHV coverage, CHV effect on delivery at L4/5")
-            st.markdown("****SDR Supply:** Upgrade L4/5 -> Improve facility capacity; Upgrade rescue -> Improve referral capacity")
+            # st.markdown("<h3 style='text-align: left;'>Live births</h3>",
+            #             unsafe_allow_html=True)
+            # st.markdown("(Note: Interventions and parameters that can change this outcome are shown as follows:)")
+            # st.markdown("****SDR Demand:** Employ CHVs -> CHV coverage, CHV effect on delivery at L4/5")
+            # st.markdown("****SDR Supply:** Upgrade L4/5 -> Improve facility capacity; Upgrade rescue -> Improve referral capacity")
 
             tab1, tab2, tab3 = st.tabs(["Line plots", "Pie charts", "Bar charts"])
             with tab1:
@@ -2835,6 +2890,7 @@ with ((st.form('Test'))):
                     scatter_geo = go.Scattermapbox(
                         lon=data.geometry.centroid.x,
                         lat=data.geometry.centroid.y,
+
                         text=data['subcounty'],
                         textfont={"color": "white", "size": 30, "family": "Courier New"},
                         mode='text',
