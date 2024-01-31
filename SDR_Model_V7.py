@@ -167,7 +167,7 @@ with st.sidebar:
 col1, col2, col3 = st.columns(3)
 with col1:
     st.subheader("SDR (Demand)",
-                 help = "Goal: Increase pregnant mothers' demand for \n\n ANC services and deliveries at L4/5 facilties")
+                 help = "Goal: Increase pregnant mothers' demand for \n\n Antenatal Care (ANC) and deliveries at L4/5 facilties")
     col1_1, col1_2 = st.columns(2)
     with col1_1:
         st.text('Apply interventions')
@@ -179,11 +179,12 @@ with col1:
             flag_CHV = 1
             CHV_cov = st.slider("CHV Coverage", min_value=0.0, max_value=1.0, step=0.1, value=0.5,
                                 help = "It refers to the proportion of pregnant mothers can be reached by CHVs")
-            CHV_45 = st.slider("CHV effect on delivery at L4/5", min_value=0.00, max_value=0.10, step=0.01, value=0.04,
-                               help = "It reflects the likelihood of mothers to deliver at L4/5 if reached by CHVs")
+            CHV_45 = st.slider("CHV effect on L4/5 delivery", min_value=0.00, max_value=0.10, step=0.01, value=0.04,
+                               help = "It reflects the increased likelihood of mothers \n\n to deliver at L4/5 if reached by CHVs")
             CHV_pushback = True
             flag_ANC = 1
-            ANCadded = st.slider('CHV effect on 4+ANCs', min_value=0.0, max_value=1.2, step=0.1, value=0.2)
+            ANCadded = st.slider('CHV effect on 4+ANCs', min_value=0.0, max_value=1.0, step=0.1, value=0.2,
+                                 help = "It reflects the increased likelihood of mothers \n\n to have 4+ ANC services if reached by CHVs")
 
 with col2:
     st.subheader("SDR (Supply)")
@@ -491,7 +492,7 @@ with ((st.form('Test'))):
                 'sdr_effect': np.zeros((12)),
             },
             'ANC': {
-                'effect': np.ones((12))
+                'effect': np.zeros((12))
             },
             'refer': {
                 'effect': np.ones((12))
@@ -628,7 +629,7 @@ with ((st.form('Test'))):
         int_knowl = knowl
         #weight = 0.448  # (LB_tot[2] + LB_tot[3])/(np.sum(LB_tot))
         b_usage = [sc['ANC'][j], base_comp[j], base_comp[j], base_comp[j]]
-        i_usage = [sc['ANC'][j] * INT['ANC']['effect'][j], comps, comps, comps]  #here INT['ANC']['effect'][j] = 1?
+        i_usage = [min(1, sc['ANC'][j] + INT['ANC']['effect'][j]), comps, comps, comps]  #here INT['ANC']['effect'][j] = 1?
         #comps_ratio = comps / base_comp[j]
 
         #suppl = np.minimum(np.array([s for s in supplies]) / comps_ratio, 1)
@@ -665,12 +666,12 @@ with ((st.form('Test'))):
             else:
                 INT['CHV']['sdr_effect'][j] = 0
             if flag_ANC:
-                INT['ANC']['effect'][j] = 1 + ANCadded * CHV_cov / n_months * i
-                max_anc = min(1, sc['ANC'][j] * INT['ANC']['effect'][j])
-                INT['ANC']['effect'][j] = max_anc / sc['ANC'][j]
-                i_usage = [sc['ANC'][j] * INT['ANC']['effect'][j], comps, comps, comps]
+                INT['ANC']['effect'][j] = ANCadded * CHV_cov / n_months * i
+                max_anc = min(1, sc['ANC'][j] + INT['ANC']['effect'][j])
+                INT['ANC']['effect'][j] = max_anc - sc['ANC'][j]
+                i_usage = [sc['ANC'][j] + INT['ANC']['effect'][j], comps, comps, comps]
             else:
-                INT['ANC']['effect'][j] = 1
+                INT['ANC']['effect'][j] = 0
             if flag_refer:
                 # referral intervention: increases self-referrals to higher level facilities, considered as pre measurement
                 INT['refer']['effect'][j] = 1 + referadded
@@ -730,7 +731,7 @@ with ((st.form('Test'))):
 
         else:
             INT['CHV']['sdr_effect'][j] = 0
-            INT['ANC']['effect'][j] = 1
+            INT['ANC']['effect'][j] = 0
             INT['refer']['effect'][j] = 1
             INT['transfer']['effect'][j] = 1
             INT['int1']['coverage'][j] = base[0]
@@ -1023,7 +1024,7 @@ with ((st.form('Test'))):
 
                     probs = []
                     p_anc_anemia = odds_prob(param['or_anc_anemia'], p_anemia, 1 - sc['ANC'][j]) * (
-                                1 - sc['ANC'][j] * i_INT['ANC']['effect'][j]) / (1 - sc['ANC'][j])
+                                1 - (min(1, sc['ANC'][j] + i_INT['ANC']['effect'][j]))) / (1 - sc['ANC'][j])
                     p_anemia_pph = np.array(odds_prob(param['or_anemia_pph'], p_pph, p_anemia)) * \
                                    i_INT['int2']['effect'][j]
                     p_anemia_sepsis = np.array(odds_prob(param['or_anemia_sepsis'], p_sepsis, p_anemia)) * \
@@ -1039,7 +1040,7 @@ with ((st.form('Test'))):
                     LB_tot_i = np.maximum(sc_time['LB1s'][j][0, :], 1)
                     SDR_multiplier = sc_time['LB1s'][j][i, :] / LB_tot_i
 
-                    anc = sc['ANC'][j] * i_INT['ANC']['effect'][j]
+                    anc = min(1, sc['ANC'][j] + i_INT['ANC']['effect'][j])
                     comps_overall = np.sum((f_comps * sc_time['LB1s'][j][i, :])) / np.sum(sc_time['LB1s'][j][i, :])
                     f_refer = comps_overall - f_comps
 
