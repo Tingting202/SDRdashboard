@@ -1023,8 +1023,12 @@ with ((st.form('Test'))):
                                               global_vars)
 
                     probs = []
-                    p_anc_anemia = odds_prob(param['or_anc_anemia'], p_anemia, 1 - sc['ANC'][j]) * (
-                                1 - (min(1, sc['ANC'][j] + i_INT['ANC']['effect'][j]))) / (1 - sc['ANC'][j])
+                    # p_anc_anemia = odds_prob(param['or_anc_anemia'], p_anemia, 1 - sc['ANC'][j]) * (
+                    #             1 - (min(1, sc['ANC'][j] + i_INT['ANC']['effect'][j]))) / (1 - sc['ANC'][j])
+
+                    p_anc_anemia = odds_prob(param['or_anc_anemia'], p_anemia, 1 - sc['ANC'][j]) * np.array(
+                        [1, (1 - min(1, sc['ANC'][j] + i_INT['ANC']['effect'][j])) / (1 - sc['ANC'][j])])
+
                     p_anemia_pph = np.array(odds_prob(param['or_anemia_pph'], p_pph, p_anemia)) * \
                                    i_INT['int2']['effect'][j]
                     p_anemia_sepsis = np.array(odds_prob(param['or_anemia_sepsis'], p_sepsis, p_anemia)) * \
@@ -1150,10 +1154,19 @@ with ((st.form('Test'))):
         f_comps_adj = new_comps / (LB_tot + new_comps - original_comps)
 
         lb_anc = np.array([1 - anc, anc]) * np.sum(LB_tot)  ### lb_anc
+        # anc_anemia = np.array([
+        #     [lb_anc[0] * (1 - p_anc_anemia[0]), lb_anc[1] * (1 - p_anc_anemia[1])],
+        #     [p_anc_anemia[0] * lb_anc[0], p_anc_anemia[1] * lb_anc[1]]
+        # ])  ### old version
+        # p_anc_anemia
+        # anc_anemia = np.array([
+        #     [lb_anc[0] * (1 - p_anc_anemia[1]), lb_anc[0] * p_anc_anemia[1]],
+        #     [(1 - p_anc_anemia[0]) * lb_anc[1], p_anc_anemia[0] * lb_anc[1]]
+        # ])  ### Meibin
         anc_anemia = np.array([
-            [lb_anc[0] * (1 - p_anc_anemia[0]), lb_anc[1] * (1 - p_anc_anemia[1])],
-            [p_anc_anemia[0] * lb_anc[0], p_anc_anemia[1] * lb_anc[1]]
-        ])  ### anc_anemia
+            [lb_anc[0] * (1 - p_anc_anemia[0]), lb_anc[0] * p_anc_anemia[0]],
+            [(1 - p_anc_anemia[1]) * lb_anc[1], p_anc_anemia[1] * lb_anc[1]]
+        ]) ### Tingting
 
         anemia_comps = np.array([
             [p_anemia_pph[1], p_anemia_pph[0]],
@@ -1162,9 +1175,10 @@ with ((st.form('Test'))):
             [0.5 * p_ol, 0.5 * p_ol],
             [0.5 * p_other, 0.5 * p_other]
         ])
-
-        anemia_comps_pre = anemia_comps * np.sum(anc_anemia,
-                                                 axis=1)  ### complications by no anemia, anemia - anemia_comp
+        #anemia_comps
+        #st.text(np.sum(anc_anemia, axis=1))
+        #anc_anemia
+        anemia_comps_pre = anemia_comps * np.sum(anc_anemia, axis=0)  ### complications by no anemia, anemia - anemia_comp
         f_comps_prop = (LB_tot * f_comps_adj) / np.sum(LB_tot * f_comps_adj)
         comp_reduction = np.ones((5, 4))
         comp_reduction[0, 2:4] = INT['int1']['effect'][j]  # PPH
@@ -1267,6 +1281,7 @@ with ((st.form('Test'))):
             'refer_capacity_added': refer_capacity_added
         }
         b_outcomes = run_model(param, [0]*12, b_f_intvs, t, n_months, b_global_vars) #run_model([], b_flags)
+        #b_outcomes
         outcomes = run_model(param, SDR_subcounties, f_intvs, t, n_months, global_vars) #run_model(SCID_selected, flags)
         b_df_aggregate = get_aggregate(b_outcomes)
         df_aggregate = get_aggregate(outcomes)
@@ -1505,24 +1520,27 @@ with ((st.form('Test'))):
             timepoint = 2
             b_lb_anc = b_df_years.loc[timepoint, 'LB-ANC']
             b_anc_anemia = b_df_years.loc[timepoint, 'ANC-Anemia']
-            b_anc_anemia
+            #b_anc_anemia
             b_anemia_comp = b_df_years.loc[timepoint, 'Anemia-Complications'].T
             b_comp_health = b_df_years.loc[timepoint, 'Complications-Health']
             b_lb_anc = b_lb_anc.reshape((1, 2))
             b_lb_anc = pd.DataFrame(b_lb_anc, columns=['no ANC', 'ANC'], index=['Mothers'])
-            b_lb_anc
-            b_anc_anemia = pd.DataFrame(b_anc_anemia, columns=['no ANC', 'ANC'], index=['no Anemia', 'Anemia'])
-            b_anc_anemia
+            #b_lb_anc
+            b_anc_anemia = pd.DataFrame(b_anc_anemia, columns=['no Anemia', 'Anemia'], index=['no ANC', 'ANC'])
+            #b_anc_anemia
             b_anemia_comp = pd.DataFrame(b_anemia_comp,
                                          columns=['PPH', 'Sepsis', 'Eclampsia', 'Obstructed Labor', 'Other'],
                                          index=['no Anemia', 'Anemia'])
+            #b_anemia_comp
             b_comp_health = pd.DataFrame(b_comp_health, columns=['Unhealthy', 'Healthy'],
                                          index=['PPH', 'Sepsis', 'Eclampsia', 'Obstructed Labor', 'Other'])
 
+            #st.text(b_anc_anemia.div(b_anc_anemia.sum(axis=0), axis=1))
+            #st.text(np.array(b_anemia_comp.sum(axis=1)))
             b_anc_anemia = b_anc_anemia.div(b_anc_anemia.sum(axis=0), axis=1) * np.array(b_anemia_comp.sum(axis=1))
-            b_anc_anemia
-            b_lb_anc.iloc[:, :] = np.array(b_anc_anemia.sum(axis=0))
-            b_lb_anc.iloc[0,1]
+            #b_anc_anemia
+            b_lb_anc.iloc[:, :] = np.array(b_anc_anemia.sum(axis=1))
+            b_lb_anc_total = np.sum(b_lb_anc.sum(axis=1), axis = 0)
 
             b_m_lb = np.round(b_df_years.loc[timepoint, 'Facility Level-Complications Pre'].astype(float),
                               decimals=0).reshape(1, 4)
@@ -1536,18 +1554,25 @@ with ((st.form('Test'))):
 
             lb_anc = df_years.loc[timepoint, 'LB-ANC']
             anc_anemia = df_years.loc[timepoint, 'ANC-Anemia']
+            #anc_anemia
             anemia_comp = df_years.loc[timepoint, 'Anemia-Complications'].T
             comp_health = df_years.loc[timepoint, 'Complications-Health']
             lb_anc = lb_anc.reshape((1, 2))
             lb_anc = pd.DataFrame(lb_anc, columns=['no ANC', 'ANC'], index=['Mothers'])
-            anc_anemia = pd.DataFrame(anc_anemia, columns=['no ANC', 'ANC'], index=['no Anemia', 'Anemia'])
+            anc_anemia = pd.DataFrame(anc_anemia, columns=['no Anemia', 'Anemia'], index=['no ANC', 'ANC'])
+            #anc_anemia
             anemia_comp = pd.DataFrame(anemia_comp, columns=['PPH', 'Sepsis', 'Eclampsia', 'Obstructed Labor', 'Other'],
                                        index=['no Anemia', 'Anemia'])
+            #anemia_comp
             comp_health = pd.DataFrame(comp_health, columns=['Unhealthy', 'Healthy'],
                                        index=['PPH', 'Sepsis', 'Eclampsia', 'Obstructed Labor', 'Other'])
 
+            #st.text(anc_anemia.div(anc_anemia.sum(axis=0), axis=1))
+            #st.text(np.array(anemia_comp.sum(axis=1)))
             anc_anemia = anc_anemia.div(anc_anemia.sum(axis=0), axis=1) * np.array(anemia_comp.sum(axis=1))
-            lb_anc.iloc[:, :] = np.array(anc_anemia.sum(axis=0))
+            #anc_anemia
+            lb_anc.iloc[:, :] = np.array(anc_anemia.sum(axis=1))
+            lb_anc_total = np.sum(lb_anc.sum(axis=1), axis = 0)
             expand_out = comp_health[['Unhealthy']].T
             expand_out.columns = ['Deaths: PPH', 'Deaths: Sepsis', 'Deaths: Eclampsia', 'Deaths: Obstructed Labor',
                                   'Deaths: Other']
@@ -1635,7 +1660,7 @@ with ((st.form('Test'))):
                                   font_size=10,
                                   autosize=False,
                                   width=600,
-                                  height=500)
+                                  height=500 * lb_anc_total / b_lb_anc_total)
                 return fig
             # Show the plot
             fig1 = plt_pathway1b(source, target, value)
@@ -1746,7 +1771,7 @@ with ((st.form('Test'))):
             ########################################################################################################################
             tab1, tab2 = st.tabs(["Complication pathway", "Facility pathway"])
             with tab1:
-                st.markdown("<h3 style='text-align: left;'>Subset of Mothers' Health through Pregnancy, Labor, and Delivery</h3>",
+                st.markdown("<h3 style='text-align: left;'>Health Pathway through Pregnancy, Labor, and Delivery for Mothers with Complications</h3>",
                             unsafe_allow_html=True)
                 st.markdown('**Intervention Scenarios**')
                 col1, col2 = st.columns(2)
