@@ -50,10 +50,6 @@ supply_level_INT2 = 0.17
 supply_level_INT5 = 0.959
 supply_level_INT6 = 1
 
-
-Cap_b = 1
-QOC_b = 1
-
 subcounties = [
     "Butere",
     "Ikolomani",
@@ -118,7 +114,7 @@ with st.sidebar:
                           help = 'Implementaion phase will stop at the month you choose \n\n and continue the maintainance phase')
     select_level = st.selectbox('Select level of interest:', level_options)
     if select_level == "County":
-        plotA_options = ("Pathways","Cost effectiveness",
+        plotA_options = ("Pathways", "Cost effectiveness",
                          "Maternal deaths", "Maternal mortality rate",
                          "Neonatal deaths", "Neonatal mortality rate",
                          "Complications", "Complication rate",
@@ -187,21 +183,26 @@ with col1:
                                  help = "It reflects the increased likelihood of mothers \n\n to have 4+ ANC services if reached by CHVs")
 
 with col2:
-    st.subheader("SDR (Supply)")
+    st.subheader("SDR (Supply)",
+                 help="Goal: Increase supply of L4/5 facilities and rescue network \n\n for supporting the increased demand"
+                 )
     col2_1, col2_2 = st.columns(2)
     with col2_1:
         st.text('Apply interventions')
-        facint = st.checkbox('Upgrade L4/5 facilities')
+        facint = st.checkbox('Upgrade L4/5 facilities',
+                             help = "To ensure high standards of obstetric and newborn care services")
     with col2_2:
         st.text('Adjust parameters')
         if facint:
             flag_sdr = 1
-            know_added = st.slider("Improve knowledge of healthcare workers", min_value=0.0, max_value=1.0,
-                                   step=0.1, value=0.0)
-            capacity_added = st.slider("Improve facility capacity (labor, equipment, infrastructure)", min_value=0.0, max_value=1.0, step=0.1,
-                                       value=0.0)
-            supply_level = st.slider("Average supply level of all single interventions", min_value=0.0, max_value=0.5, step=0.1,
-                                     value=1.0)
+            know_added = st.slider("Improve knowledge of healthcare workers", min_value=0.0, max_value=1.0, step=0.1, value=0.0,
+                                   help = "Healthcare workers with high knowledge are more likely \n\n to follow the protocols of single interventions")
+
+            supply_level = st.slider("Average supply level of all single interventions", min_value=0.0, max_value=0.5, step=0.1, value=1.0,
+                                     help = "Supply level refers to the proportion of mothers at facilities who need treatments \n\n can be provided with corresponding single interventions")
+
+            capacity_added = st.slider("Improve facility capacity (through labor, equipment, infrastructure)", min_value=0.0, max_value=1.0, step=0.1, value=0.0,
+                                       help = "")
             supply_level_INT1 = supply_level
             supply_level_INT2 = supply_level
             supply_level_INT5 = supply_level
@@ -1807,7 +1808,7 @@ with ((st.form('Test'))):
                     st.session_state.previous_plot = fig1
                     st.caption(
                         '*Note, relationships assumed based on literature values for factors not explicitly measured in the data, i.e. antenatal care and anemia.')
-                    anc_improve = round((lb_anc.iloc[0,1]/np.sum(lb_anc, axis = 1)[0] - b_lb_anc.iloc[0,1]/np.sum(b_lb_anc, axis = 1)[0]), ndigits = 2) * 100
+                    anc_improve = round((lb_anc.iloc[0,1]/np.sum(lb_anc, axis = 1)[0] - b_lb_anc.iloc[0,1]/np.sum(b_lb_anc, axis = 1)[0]), ndigits = 1) * 100
                     st.session_state.previous_anc_improve = anc_improve
                     st.markdown(
                         f'The intervention increased antenatal care rate by ~ **{anc_improve}%** in the final year.')
