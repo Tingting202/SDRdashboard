@@ -275,11 +275,14 @@ with col3:
 st.markdown("~~~")
 if selected_plotA == "Pathways":
     st.markdown("<h3 style='text-align: left;'>Pathways</h3>",
-                unsafe_allow_html=True)
-    st.markdown("**Scenario testing guidance:** Interventions and parameters that can change this outcome:")
-    st.markdown("**SDR Demand: all parameters")
-    st.markdown("**SDR Supply: all parameters")
-    st.markdown("**Single Interventions: all parameters")
+                unsafe_allow_html=True, help = "Interventions and parameters that can change this outcome: \n\n "
+                                               "1. SDR Demand: all parameters \n\n "
+                                               "2. SDR Supply: all parameters \n\n "
+                                               "3. Single Interventions: all parameters")
+    # st.markdown("**Scenario testing guidance:** Interventions and parameters that can change this outcome:")
+    # st.markdown("**SDR Demand: all parameters")
+    # st.markdown("**SDR Supply: all parameters")
+    # st.markdown("**Single Interventions: all parameters")
 
 if selected_plotA == "Live births":
     st.markdown("<h3 style='text-align: left;'>Live births</h3>",
@@ -1716,7 +1719,7 @@ with ((st.form('Test'))):
                 )])
 
                 # Update the layout
-                fig.update_layout(title_text="Baseline",
+                fig.update_layout(title_text=" ",
                                   font_size=10,
                                   autosize=False,
                                   width=600,
@@ -1762,87 +1765,112 @@ with ((st.form('Test'))):
                                   font_size=10,
                                   autosize=False,
                                   width=600,
-                                  height=500)
+                                  height=500 * lb_anc_total / b_lb_anc_total)
 
                 return fig
             # Show the plot
             fig2 = plt_pathway2b(source, target, value)
 
             ########################################################################################################################
-            tab1, tab2 = st.tabs(["Complication pathway", "Facility pathway"])
+            tab1, tab2 = st.tabs(["Complication Pathway", "Delivery Location Pathway"])
             with tab1:
                 st.markdown("<h3 style='text-align: left;'>Health Pathway through Pregnancy, Labor, and Delivery for Mothers with Complications</h3>",
                             unsafe_allow_html=True)
-                st.markdown('**Intervention Scenarios**')
+                baseline = st.checkbox("Reset to show baseline scenario of Complication Pathway?", help = "Click this checkbox and then press Run Model button")
                 col1, col2 = st.columns(2)
                 with col1:
-                    st.markdown('**Previous Run**')
-                    previous_plot = st.session_state.get('previous_plot', None)
-                    previous_anc_improve = st.session_state.get('previous_anc_improve', None)
-                    previous_death_improve = st.session_state.get('previous_death_improve', None)
-                    if previous_plot is not None and previous_anc_improve is not None and previous_death_improve is not None:
-                        st.plotly_chart(previous_plot)
-                        st.markdown(
-                            f'The intervention increased antenatal care rate by ~ **{previous_anc_improve}%** in 3rd year.')
-                        if previous_death_improve > 0:
-                            st.markdown(
-                                f'The intervention reduced the number of maternal deaths by ~ **{previous_death_improve}** in 3rd year.')
-                        else:
-                            st.markdown(
-                                f'The intervention reduced the number of maternal deaths by ~ **{0}** in 3rd year.')
-                    else:
+                    if baseline:
+                        st.markdown('**Baseline Scenario**')
                         st.plotly_chart(fig1_b)
+                    else:
+                        previous_plot = st.session_state.get('previous_plot', None)
+                        previous_anc_improve = st.session_state.get('previous_anc_improve', None)
+                        previous_death_improve = st.session_state.get('previous_death_improve', None)
+                        if previous_plot is not None and previous_anc_improve is not None and previous_death_improve is not None:
+                            st.markdown('**Previous Intervention Scenario**')
+                            st.plotly_chart(previous_plot)
+                            st.markdown(
+                                f'The intervention increased antenatal care rate by ~ **{previous_anc_improve}%** in the final year.')
+                            if previous_death_improve > 0:
+                                st.markdown(
+                                    f'The intervention reduced the number of maternal deaths by ~ **{previous_death_improve}** in the final year.')
+                            else:
+                                st.markdown(
+                                    f'The intervention reduced the number of maternal deaths by ~ **{0}** in the final year.')
+                        else:
+                            st.markdown('**Baseline Scenario**')
+                            st.plotly_chart(fig1_b)
 
                 with col2:
-                    st.markdown('**Current Run**')
+                    st.markdown('**Current Intervention Scenario**')
                     st.plotly_chart(fig1)
                     st.session_state.previous_plot = fig1
                     st.caption(
                         '*Note, relationships assumed based on literature values for factors not explicitly measured in the data, i.e. antenatal care and anemia.')
-                    anc_improve = round((lb_anc.iloc[0,1] - b_lb_anc.iloc[0,1])/np.sum(b_lb_anc, axis = 1)[0], ndigits = 3) * 100
+                    anc_improve = round((lb_anc.iloc[0,1]/np.sum(lb_anc, axis = 1)[0] - b_lb_anc.iloc[0,1]/np.sum(b_lb_anc, axis = 1)[0]), ndigits = 2) * 100
                     st.session_state.previous_anc_improve = anc_improve
                     st.markdown(
-                        f'The intervention increased antenatal care rate by ~ **{anc_improve}%** in 3rd year.')
+                        f'The intervention increased antenatal care rate by ~ **{anc_improve}%** in the final year.')
                     death_improve = round(np.sum(np.array(b_comp_health - comp_health)[:, 0]))
                     st.session_state.previous_death_improve = death_improve
                     if death_improve > 0:
                         st.markdown(
-                            f'The intervention reduced the number of maternal deaths by ~ **{death_improve}** in 3rd year.')
+                            f'The intervention reduced the number of maternal deaths by ~ **{death_improve}** in the final year.')
                     else:
                         st.markdown(
-                            f'The intervention reduced the number of maternal deaths by ~ **{0}** in 3rd year.')
-            st.markdown('---')
-            st.markdown('**Baseline Scenario**')
-            st.plotly_chart(fig1_b)
+                            f'The intervention reduced the number of maternal deaths by ~ **{0}** in the final year.')
 
             with tab2:
                 st.markdown(
-                    "<h3 style='text-align: left;'>Mothers with Complications through Facilities</h3>",
+                    "<h3 style='text-align: left;'>Initial Delivery Locations, Transfers, and Final Delivery Locations for Mothers with Complications</h3>",
                     unsafe_allow_html=True)
+                baseline = st.checkbox("Reset to show baseline scenario of Delivery Location Pathway?",
+                                       help="Click this checkbox and then press Run Model button")
                 col1, col2 = st.columns(2)
                 with col1:
-                    st.markdown('**Previous Run**')
-                    previous_plot2 = st.session_state.get('previous_plot2', None)
-                    if previous_plot2 is not None:
-                        st.plotly_chart(previous_plot2)
-                    else:
+                    if baseline:
+                        st.markdown('**Baseline Scenario**')
                         st.plotly_chart(fig2_b)
+                    else:
+                        previous_plot2 = st.session_state.get('previous_plot2', None)
+                        previous_l45_improve = st.session_state.get('previous_l45_improve', None)
+                        previous_transfer_reduce = st.session_state.get('previous_transfer_reduce', None)
+                        previous_deaths_reduce = st.session_state.get('previous_deaths_reduce', None)
+                        if previous_plot2 is not None:
+                            st.markdown('**Previous Intervention Scenario**')
+                            st.plotly_chart(previous_plot2)
+                            st.markdown(
+                                f'The intervention increased live births at L4/5 facilities by ~ **{previous_l45_improve}%** in the final year.')
+                            st.markdown(
+                                f'The intervention reduced the number of transfers to L4/5 facilities by ~ **{previous_transfer_reduce}** in the final year.')
+                            st.markdown(
+                                f'The intervention reduced the number of maternal deaths by ~ **{previous_deaths_reduce}** in the final year.')
+                        else:
+                            st.markdown('**Baseline Scenario**')
+                            st.plotly_chart(fig2_b)
 
                 with col2:
-                    st.markdown('**Current Run**')
+                    st.markdown('**Current Intervention Scenario**')
                     st.plotly_chart(fig2)
                     st.session_state.previous_plot2 = fig2
                     st.caption(
                         '*Note, relationships assumed based on literature values for factors not explicitly measured in the data, i.e. antenatal care and anemia.')
-                    if np.sum(np.array(b_m_lb - m_lb)[0][2:4]) > 0:
+
+                    l45_improve = round(np.sum(np.array(m_lb)[0][2:4]) / np.sum(m_lb, axis = 1)[0] - np.sum(np.array(b_m_lb)[0][2:4]) / np.sum(b_m_lb, axis = 1)[0], ndigits = 1) * 100
+                    st.session_state.previous_l45_improve = l45_improve
+                    transfer_reduce = -round(np.sum(np.array(lb_lb - b_lb_lb)[0:2, 2:4]))
+                    st.session_state.previous_transfer_reduce = transfer_reduce
+                    deaths_reduce = round(np.sum(np.array(b_q_outcomes - q_outcomes)[:, 0]))
+                    st.session_state.previous_deaths_reduce = deaths_reduce
+                    if l45_improve > 0:
                         st.markdown(
-                            f'The intervention increased the number of live births at L4/5 facilities by ~ **{round(np.sum(np.array(b_m_lb - m_lb)[0][2:4]))}.**')
-                    if np.sum(np.array(b_lb_lb - lb_lb)[0:2, 2:4]) < 0:
+                            f'The intervention increased live births at L4/5 facilities by ~ **{l45_improve}%** in the final year.')
+                    if transfer_reduce > 0:
                         st.markdown(
-                            f'The intervention reduced the number of transfers to L4/5 facilities by ~ **{-round(np.sum(np.array(b_lb_lb - lb_lb)[0:2, 2:4]))}.**')
-                    if np.sum(np.array(b_q_outcomes - q_outcomes)[:, 0]) > 0:
+                            f'The intervention reduced the number of transfers to L4/5 facilities by ~ **{transfer_reduce}** in the final year.')
+                    if deaths_reduce > 0:
                         st.markdown(
-                            f'The intervention reduced the number of maternal deaths by ~ **{round(np.sum(np.array(b_q_outcomes - q_outcomes)[:, 0]))}** in 3rd year.')
+                            f'The intervention reduced the number of maternal deaths by ~ **{deaths_reduce}** in the final year.')
 
         if selected_plotA == "Cost effectiveness":
             st.markdown("<h3 style='text-align: left;'>Select the interventions to compare cost-effectiveness</h3>",
