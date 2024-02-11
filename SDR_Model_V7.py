@@ -34,8 +34,9 @@ flag_sdr = 0
 flag_capacity = 0
 flag_community = 0
 flag_refer_capacity = 0
-CHV_cov = 0
+CHV_cov = 1
 CHV_45 = 0
+Exp_45_add = 0
 CHV_ANC = 0
 CHV_pushback = False
 referadded = 0
@@ -84,8 +85,8 @@ def reset_global_vars():
     global_vars = {
         'ANCadded': 0,
         'CHV_pushback': False,
-        'CHV_cov': 0,
-        'CHV_45': 0,
+        'CHV_cov': 1,
+        'Exp_45_add': 0,
         'know_added': 0,
         'supply_level': {'supply_level_INT1': 0,
                          'supply_level_INT2': 0,
@@ -114,14 +115,14 @@ with st.sidebar:
                           help = 'Implementaion phase will stop at the month you choose \n\n and continue the maintainance phase')
     select_level = st.selectbox('Select level of interest:', level_options)
     if select_level == "County":
-        plotA_options = ("Pathways", "Cost effectiveness",
-                         "Maternal deaths", "Maternal mortality rate",
+        plotA_options = ("Pathways", "Cost effectiveness","Intervention coverage","Maternal mortality rate",
+                         "Maternal deaths",
                          "Neonatal deaths", "Neonatal mortality rate",
                          "Complications", "Complication rate",
                          "Live births","ANC rate",
                          "Facility capacity", "Facility capacity ratio",
                          "Referral capacity ratio",
-                         "Knowledge score", "Intervention coverage",
+                         "Knowledge score",
                          "Referral from home to L45"," Emergency transfer"
                          )
         selected_plotA = st.selectbox(
@@ -173,14 +174,20 @@ with col1:
         if CHVint:
             flag_sdr = 1
             flag_CHV = 1
-            CHV_cov = st.slider("CHV Coverage", min_value=0.0, max_value=1.0, step=0.1, value=0.5,
-                                help = "It refers to the proportion of pregnant mothers can be reached by CHVs")
-            CHV_45 = st.slider("CHV effect on L4/5 delivery", min_value=0.00, max_value=0.10, step=0.01, value=0.04,
-                               help = "It reflects the increased likelihood of mothers \n\n to deliver at L4/5 if reached by CHVs")
+            #CHV_cov = st.slider("CHV Coverage", min_value=0.0, max_value=1.0, step=0.1, value=0.5,
+            #                    help = "It refers to the proportion of pregnant mothers can be reached by CHVs \n\n"
+            #                           "Value = 1 means 100% pregnant mothers can be reached by CHVs")
+            Exp_45_add = st.slider("Expected % increase in L4/5 deliveries", min_value=0.0, max_value=1.0, step=0.1, value=0.5,
+                               help = "Expected % increase in L4/5 deliveries compared to baseline level \n\n"
+                                      "Value = 1 means L4/5 deliveries are expected to increase 100%, i.e. 2 times higher than baseline")
+            CHV_45 = Exp_45_add / 36
+            # CHV_45 = st.slider("CHV effect on L4/5 delivery", min_value=0.00, max_value=0.10, step=0.01, value=0.04,
+            #                    help = "It reflects the increased likelihood of mothers to deliver at L4/5 if reached by CHVs")
             CHV_pushback = True
             flag_ANC = 1
-            ANCadded = st.slider('CHV effect on 4+ANCs', min_value=0.0, max_value=1.0, step=0.1, value=0.2,
-                                 help = "It reflects the increased likelihood of mothers \n\n to have 4+ ANC services if reached by CHVs")
+            ANCadded = st.slider('Expected % increase in 4+ANC rate', min_value=0.0, max_value=1.0, step=0.1, value=0.2,
+                                 help = "It reflects the increased rate of 4+ ANC services \n\n"
+                                        "Value = 1 means the ANC rate will increase up to 100%")
 
 with col2:
     st.subheader("SDR (Supply)",
@@ -195,84 +202,100 @@ with col2:
         st.text('Adjust parameters')
         if facint:
             flag_sdr = 1
-            know_added = st.slider("Improve knowledge of healthcare workers", min_value=0.0, max_value=1.0, step=0.1, value=0.0,
-                                   help = "Healthcare workers with high knowledge are more likely \n\n to follow the protocols of single interventions")
+            know_added = st.slider("Improve knowledge of healthcare workers", min_value=0.0, max_value=1.0, step=0.1, value=0.5,
+                                   help = "Knowledge reflects the likelihood of following protocols of single interventions \n\n"
+                                          "Value = 1 means to increase knowledge up to 100 scores (full scores = 100)")
 
-            supply_level = st.slider("Average supply level of all single interventions", min_value=0.0, max_value=0.5, step=0.1, value=1.0,
-                                     help = "Supply level refers to the proportion of mothers at facilities who need treatments \n\n can be provided with corresponding single interventions")
+            # supply_level = st.slider("Average supply level of all single interventions", min_value=0.0, max_value=0.5, step=0.1, value=1.0,
+            #                          help = "Supply level reflects % of mothers who need treatments in facilities can be provided with single interventions \n\n"
+            #                                 "Value = 1 means 100% of those mothers in facilities can be provided with single interventions")
 
-            capacity_added = st.slider("Improve facility capacity (through labor, equipment, infrastructure)", min_value=0.0, max_value=1.0, step=0.1, value=0.0,
-                                       help = "")
-            supply_level_INT1 = supply_level
-            supply_level_INT2 = supply_level
-            supply_level_INT5 = supply_level
-            supply_level_INT6 = supply_level
+            capacity_added = st.slider("Improve facility capacity (through labor, equipment, infrastructure)", min_value=0.0, max_value=1.0, step=0.1, value=0.5,
+                                       help = "Facility capacity reflects the maximum live births can be delivered at the facility \n\n"
+                                              "Value = 1 means the current facility capacity is 2 times higher than baseline level")
+            # supply_level_INT1 = supply_level
+            # supply_level_INT2 = supply_level
+            # supply_level_INT5 = supply_level
+            # supply_level_INT6 = supply_level
     st.markdown("---")
     col2_3, col2_4 = st.columns(2)
     with col2_3:
-        refint = st.checkbox('Rescue network upgrade')
+        refint = st.checkbox('Upgrade Rescue network',
+                             help = "To support the increased referrals/transfers \n\n from home or L2/3 facilities to L4/5 facilities")
     with col2_4:
         if refint:
             flag_sdr = 1
-            refer_capacity_added = st.slider('Improve referral capacity', min_value=0.0, max_value=1.0,
-                                       step=0.1, value=0.0)
+            refer_capacity_added = st.slider('Improve referral capacity', min_value=0.0, max_value=1.0, step=0.1, value=0.5,
+                                             help = "Referral capacity reflects the maximum referrals/transfers can be supported by rescue network \n\n"
+                                                    "Value = 1 means the current referral capacity is 2 times higher than baseline level")
 
 with col3:
-    st.subheader("Single interventions")
+    st.subheader("Single interventions",
+                 help = "Goal: Address leading biomedical causes of maternal death")
     col3_1, col3_2 = st.columns(2)
     with col3_1:
         st.text('Apply interventions')
-        int1 = st.checkbox('INT1: Obstetric drape for pph')
+        int1 = st.checkbox('INT1: Obstetric drape',
+                           help = "It helps identify postpartum hemorrhage (pph), \n\n e.g., when blood loss is dangerously excessive")
     with col3_2:
-        st.text('Adjust parameters')
+        st.text('Adjust parameters', help = "The default value is the baseline supply level")
         if int1:
             flag_int1 = 1
-            value = st.slider("Supply level of INT1", min_value=0.0, max_value=1.0, step=0.1,
-                                     value=0.78)
-            if flag_sdr == 0:
-                supply_level_INT1 = value
-            else:
-                supply_level_INT1 = supply_level_INT1
+            supply_level_INT1 = st.slider("Supply level of INT1", min_value=0.0, max_value=1.0, step=0.1, value=0.78,
+                              help = "It reflects % of mothers with pph in facilities can be provided with obstetric drape\n\n"
+                                     "Value = 1 means 100% of mothers with pph in facilities can be provided with obstetric drape")
+            # if flag_sdr == 0:
+            #     supply_level_INT1 = value
+            # else:
+            #     supply_level_INT1 = supply_level_INT1
 
     st.markdown("---")
     col3_3, col3_4 = st.columns(2)
     with col3_3:
-        int2 = st.checkbox('INT2: IV iron infusion for anemia')
+        int2 = st.checkbox('INT2: IV iron infusion',
+                           help = "It helps reduce the probability of getting anemia \n\n"
+                                  "Anemia can increase the risk of having leading biomedical causes of maternal deaths")
     with col3_4:
         if int2:
             flag_int2 = 1
-            value = st.slider("Supply level of INT2", min_value=0.0, max_value=1.0, step=0.1,
-                                          value=0.17)
-            if flag_sdr == 0:
-                supply_level_INT2 = value
-            else:
-                supply_level_INT2 = supply_level_INT2
+            supply_level_INT2 = st.slider("Supply level of INT2", min_value=0.0, max_value=1.0, step=0.1, value=0.17,
+                              help="It reflects % of mothers during ANC can be provided with IV iron infusion \n\n"
+                                   "Value = 1 means 100% of mothers during ANC can be provided with IV iron infusion"
+                              )
+            # if flag_sdr == 0:
+            #     supply_level_INT2 = value
+            # else:
+            #     supply_level_INT2 = supply_level_INT2
     st.markdown("---")
     col3_5, col3_6 = st.columns(2)
     with col3_5:
-        int5 = st.checkbox('INT3: MgSO4 for eclampsia')
+        int5 = st.checkbox('INT3: Magnesium sulfate (MgSO4)',
+                           help = "It helps reduce maternal deaths due to eclampsia")
     with col3_6:
         if int5:
             flag_int5 = 1
-            value = st.slider("Supply level of INT3", min_value=0.0, max_value=1.0, step=0.1,
-                                          value=0.96)
-            if flag_sdr == 0:
-                supply_level_INT5 = value
-            else:
-                supply_level_INT5 = supply_level_INT5
+            supply_level_INT5 = st.slider("Supply level of INT3", min_value=0.0, max_value=1.0, step=0.1, value=0.96,
+                              help = "It reflects % of mothers with eclampsia can be provided with MgSO4 \n\n"
+                                     "Value = 1 means 100% of mothers with eclampsia can be provided with MgSO4")
+            # if flag_sdr == 0:
+            #     supply_level_INT5 = value
+            # else:
+            #     supply_level_INT5 = supply_level_INT5
     st.markdown("---")
     col3_7, col3_8 = st.columns(2)
     with col3_7:
-        int6 = st.checkbox('INT4: Antibiotics for maternal sepsis')
+        int6 = st.checkbox('INT4: Antibiotics for maternal sepsis',
+                           help = "It helps reduce maternal deaths due to maternal sepsis")
     with col3_8:
         if int6:
             flag_int6 = 1
-            value = st.slider("Supply level of INT4", min_value=0.0, max_value=1.0, step=0.1,
-                              value=1.0)
-            if flag_sdr == 0:
-                supply_level_INT6 = value
-            else:
-                supply_level_INT6 = supply_level_INT6
+            supply_level_INT6 = st.slider("Supply level of INT4", min_value=0.0, max_value=1.0, step=0.1, value=1.0,
+                              help = "It reflects % of mothers with maternal sepsis can be provided with Antibiotics \n\n"
+                                     "Value = 1 means 100% of mothers with maternal sepsis can be provided with Antibiotics")
+            # if flag_sdr == 0:
+            #     supply_level_INT6 = value
+            # else:
+            #     supply_level_INT6 = supply_level_INT6
 st.markdown("~~~")
 if selected_plotA == "Pathways":
     st.markdown("<h3 style='text-align: left;'>Pathways</h3>",
@@ -280,17 +303,34 @@ if selected_plotA == "Pathways":
                                                "1. SDR Demand: all parameters \n\n "
                                                "2. SDR Supply: all parameters \n\n "
                                                "3. Single Interventions: all parameters")
-    # st.markdown("**Scenario testing guidance:** Interventions and parameters that can change this outcome:")
-    # st.markdown("**SDR Demand: all parameters")
-    # st.markdown("**SDR Supply: all parameters")
-    # st.markdown("**Single Interventions: all parameters")
+
+if selected_plotA == "Cost effectiveness":
+    st.markdown("<h3 style='text-align: left;'>Cost effectiveness</h3>", unsafe_allow_html=True,
+                help = "This section compares the cost, effectiveness, and cost-effectiveness \n\n of different SDR scenarios and single-intervention scenarios")
 
 if selected_plotA == "Live births":
-    st.markdown("<h3 style='text-align: left;'>Live births</h3>",
-                unsafe_allow_html=True)
-    st.markdown("**Scenario testing guidance:** Interventions and parameters that can change this outcome:")
-    st.markdown("**SDR Demand: Employ CHVs -> CHV coverage, CHV effect on delivery at L4/5")
-    st.markdown("**SDR Supply: Upgrade L4/5 -> Improve facility capacity; Upgrade rescue -> Improve referral capacity")
+    st.markdown("<h3 style='text-align: left;'>Live births</h3>", unsafe_allow_html=True,
+                help = "Interventions and parameters that can change this outcome: \n\n "
+                       "1. SDR Demand: Employ CHVs -> CHV coverage, CHV effect on delivery at L4/5 \n\n "
+                       "2. SDR Supply: Upgrade L4/5 -> Improve facility capacity; Upgrade rescue -> Improve referral capacity \n\n "
+                       "3. Single Interventions: None")
+
+if selected_plotA == "Intervention coverage":
+    st.markdown("<h3 style='text-align: left;'>Intervention coverage</h3>", unsafe_allow_html=True,
+                help="**Intervention coverage** refers to the proportion of mothers who need the single intervention are treated with this intervention \n\n "
+                     "**Intervention coverage** = **Knowledge** of healthcare worker * **Supply** of single intervention * **%Mothers at facilities** \n\n "
+                     "Interventions and parameters that can change this outcome: \n\n "
+                     "1. SDR Demand: all parameters \n\n "
+                     "2. SDR Supply: all parameters \n\n "
+                     "3. Single Interventions: all parameters")
+
+if selected_plotA == "Maternal mortality rate":
+    st.markdown("<h3 style='text-align: left;'>Maternal deaths per 1000 live births (MMR)</h3>", unsafe_allow_html=True,
+                help = "Interventions and parameters that can change this outcome: \n\n "
+                       "1. SDR Demand: all parameters \n\n "
+                       "2. SDR Supply: all parameters \n\n "
+                       "3. Single Interventions: all parameters"
+                )
 
 with ((st.form('Test'))):
     ### PARAMETERs ###
@@ -646,7 +686,8 @@ with ((st.form('Test'))):
         supply_level_INT6 = global_vars['supply_level']['supply_level_INT6']
         know_added = global_vars['know_added']
         capacity_added = global_vars['capacity_added']
-        CHV_45 = global_vars['CHV_45']
+        Exp_45_add = global_vars['Exp_45_add']
+        CHV_45 = Exp_45_add / 36
         CHV_cov = global_vars['CHV_cov']
         ANCadded = global_vars['ANCadded']
         transadded = global_vars['transadded']
@@ -1273,7 +1314,7 @@ with ((st.form('Test'))):
             'ANCadded': ANCadded,
             'CHV_pushback': CHV_pushback,
             'CHV_cov': CHV_cov,
-            'CHV_45': CHV_45,
+            'Exp_45_add': Exp_45_add,
             'know_added': know_added,
             'supply_level': {'supply_level_INT1': supply_level_INT1,
                              'supply_level_INT2': supply_level_INT2,
@@ -1451,7 +1492,7 @@ with ((st.form('Test'))):
                     column=alt.Column('level:N', title=None, header=alt.Header(labelOrient='bottom')),
                     tooltip=['Scenario:N', y + ':Q']
                 ).properties(
-                    width=alt.Step(80),
+                    width=alt.Step(40),
                     height=300
                 )
             )
@@ -1516,7 +1557,7 @@ with ((st.form('Test'))):
 
             chart = lineplots(df, p_title[i], "MMR", ytitle, ymax)
 
-            return st.altair_chart(chart)
+            return chart
 
         if selected_plotA == "Pathways":
             import plotly.graph_objects as go
@@ -1856,7 +1897,6 @@ with ((st.form('Test'))):
                     st.session_state.previous_plot2 = fig2
                     st.caption(
                         '*Note, relationships assumed based on literature values for factors not explicitly measured in the data, i.e. antenatal care and anemia.')
-
                     l45_improve = round(np.sum(np.array(m_lb)[0][2:4]) / np.sum(m_lb, axis = 1)[0] - np.sum(np.array(b_m_lb)[0][2:4]) / np.sum(b_m_lb, axis = 1)[0], ndigits = 1) * 100
                     st.session_state.previous_l45_improve = l45_improve
                     transfer_reduce = -round(np.sum(np.array(lb_lb - b_lb_lb)[0:2, 2:4]))
@@ -1865,10 +1905,10 @@ with ((st.form('Test'))):
                     st.session_state.previous_deaths_reduce = deaths_reduce
                     if l45_improve > 0:
                         st.markdown(
-                            f'The intervention increased live births at L4/5 facilities by ~ **{l45_improve}%** in the final year.')
+                            f'The intervention increased live births of mothers with complications at L4/5 facilities by ~ **{l45_improve}%** in the final year.')
                     if transfer_reduce > 0:
                         st.markdown(
-                            f'The intervention reduced the number of transfers to L4/5 facilities by ~ **{transfer_reduce}** in the final year.')
+                            f'The intervention reduced the number of emergency transfers to L4/5 facilities by ~ **{transfer_reduce}** in the final year.')
                     if deaths_reduce > 0:
                         st.markdown(
                             f'The intervention reduced the number of maternal deaths by ~ **{deaths_reduce}** in the final year.')
@@ -1878,18 +1918,36 @@ with ((st.form('Test'))):
                         unsafe_allow_html=True)
             col1, col2 = st.columns(2)
             with col1:
-                st.text('Increase single intervention by 20%')
+                st.text('Increase the supply of single intervention to 100%')
                 ce_int1 = st.checkbox('Obstetric drape for pph')
                 ce_int2 = st.checkbox('IV iron infusion for anemia')
-                ce_int5 = st.checkbox('MgSO4 for elampsia')
-                ce_int6 = st.checkbox('Antibiotics for maternal sepsis')
+                #ce_int5 = st.checkbox('MgSO4 for elampsia')
+                #ce_int6 = st.checkbox('Antibiotics for maternal sepsis')
+                ce_int5 = False
+                ce_int6 = False
                 ce_int1256 = st.checkbox('All single interventions')
             with col2:
                 st.text('SDR interventions with mixed levels of supply and demand')
-                ce_sdr1 = st.checkbox('SDR (high demand + high supply)')
-                ce_sdr2 = st.checkbox('SDR (high demand + low supply)')
-                ce_sdr3 = st.checkbox('SDR (low demand + high supply)')
-                ce_sdr4 = st.checkbox('SDR (low demand + low supply)')
+                ce_sdr1 = st.checkbox('SDR (high demand + high supply)',
+                                      help = "Demand: Expected % increase in L4/5 deliveries = 1 \n\n"
+                                             "Demand: Expected % increase in 4+ANC rate = 1 \n\n"
+                                             "Supply: Improve knowledge of healthcare workers = 1 \n\n"
+                                             "Supply: Improve facility and referral capacity = 1")
+                ce_sdr2 = st.checkbox('SDR (high demand + low supply)',
+                                      help = "Demand: Expected % increase in L4/5 deliveries = 1 \n\n"
+                                             "Demand: Expected % increase in 4+ANC rate = 1 \n\n"
+                                             "Supply: Improve knowledge of healthcare workers = 0.2 \n\n"
+                                             "Supply: Improve facility and referral capacity = 0.2")
+                ce_sdr3 = st.checkbox('SDR (low demand + high supply)',
+                                      help = "Demand: Expected % increase in L4/5 deliveries = 0.2 \n\n"
+                                             "Demand: Expected % increase in 4+ANC rate = 0.2 \n\n"
+                                             "Supply: Improve knowledge of healthcare workers = 1 \n\n"
+                                             "Supply: Improve facility and referral capacity = 1")
+                ce_sdr4 = st.checkbox('SDR (low demand + low supply)',
+                                      help = "Demand: Expected % increase in L4/5 deliveries = 0.2 \n\n"
+                                             "Demand: Expected % increase in 4+ANC rate = 0.2 \n\n"
+                                             "Supply: Improve knowledge of healthcare workers = 0.2 \n\n"
+                                             "Supply: Improve facility and referral capacity = 0.2")
             st.markdown("---")
             INTs = reset_INTs()
             b_f_intvs = set_time_int(INTs, time_comp)
@@ -1982,16 +2040,16 @@ with ((st.form('Test'))):
                 f_intvs = set_time_int(INTs, time_comp)
                 global_vars = reset_global_vars()
                 global_vars = {
-                    'ANCadded': 0.5,
+                    'ANCadded': 1,
                     'CHV_pushback': True,
                     'CHV_cov': 1,
-                    'CHV_45': 0.04,
+                    'Exp_45_add': 1,
                     'know_added': 1,
                     'supply_level': {'supply_level_INT1': 1,
                                      'supply_level_INT2': 1,
                                      'supply_level_INT5': 1,
                                      'supply_level_INT6': 1},
-                    'capacity_added': 0.8,
+                    'capacity_added': 1,
                     'transadded': 0,
                     'referadded': 0,
                     'refer_capacity_added': 1
@@ -2010,10 +2068,10 @@ with ((st.form('Test'))):
                 f_intvs = set_time_int(INTs, time_comp)
                 global_vars = reset_global_vars()
                 global_vars = {
-                    'ANCadded': 0.5,
+                    'ANCadded': 1,
                     'CHV_pushback': True,
                     'CHV_cov': 1,
-                    'CHV_45': 0.04,
+                    'Exp_45_add': 1,
                     'know_added': 0.2,
                     'supply_level': {'supply_level_INT1': 1,
                                      'supply_level_INT2': 1,
@@ -2022,7 +2080,7 @@ with ((st.form('Test'))):
                     'capacity_added': 0.2,
                     'transadded': 0,
                     'referadded': 0,
-                    'refer_capacity_added': 1
+                    'refer_capacity_added': 0.2
                 }
                 df = run_model(param, SDR_subcounties, f_intvs, t, n_months, global_vars)
                 #df.dropna().reset_index().to_csv("/Users/tingtingji/Library/CloudStorage/Dropbox/Phd PolyU/My Projects/Postdoc in JHU/SDR_project/Dashboard/Output/SDR2.csv", index = False)
@@ -2038,16 +2096,16 @@ with ((st.form('Test'))):
                 f_intvs = set_time_int(INTs, time_comp)
                 global_vars = reset_global_vars()
                 global_vars = {
-                    'ANCadded': 0.5,
+                    'ANCadded': 0.2,
                     'CHV_pushback': True,
-                    'CHV_cov': 0.2,
-                    'CHV_45': 0.04,
+                    'CHV_cov': 1,
+                    'Exp_45_add': 0.2,
                     'know_added': 1,
                     'supply_level': {'supply_level_INT1': 1,
                                      'supply_level_INT2': 1,
                                      'supply_level_INT5': 1,
                                      'supply_level_INT6': 1},
-                    'capacity_added': 0.8,
+                    'capacity_added': 1,
                     'transadded': 0,
                     'referadded': 0,
                     'refer_capacity_added': 1
@@ -2066,10 +2124,10 @@ with ((st.form('Test'))):
                 f_intvs = set_time_int(INTs, time_comp)
                 global_vars = reset_global_vars()
                 global_vars = {
-                    'ANCadded': 0.5,
+                    'ANCadded': 0.2,
                     'CHV_pushback': True,
-                    'CHV_cov': 0.2,
-                    'CHV_45': 0.04,
+                    'CHV_cov': 1,
+                    'Exp_45_add': 0.2,
                     'know_added': 0.2,
                     'supply_level': {'supply_level_INT1': 1,
                                      'supply_level_INT2': 1,
@@ -2078,7 +2136,7 @@ with ((st.form('Test'))):
                     'capacity_added': 0.2,
                     'transadded': 0,
                     'referadded': 0,
-                    'refer_capacity_added': 1
+                    'refer_capacity_added': 0.2
                 }
                 df = run_model(param, SDR_subcounties, f_intvs, t, n_months, global_vars)
                 #df.dropna().reset_index().to_csv("/Users/tingtingji/Library/CloudStorage/Dropbox/Phd PolyU/My Projects/Postdoc in JHU/SDR_project/Dashboard/Output/SDR4.csv", index = False)
@@ -2146,7 +2204,92 @@ with ((st.form('Test'))):
                     with plot_columns[row][col]:
                         st.altair_chart(chart)
             with tab3:
-                st.text('To be continued')
+                col0, col1 = st.columns(2)
+                with col0:
+                    df_cost = df_ce[['Cost (USD)']]
+                    df_cost.reset_index(inplace=True)
+                    df_cost.columns = ["Scenario", "Cost (USD)"]
+                    #df_cost
+                    chart = (
+                        alt.Chart(
+                            data=df_cost,
+                            title="Total Cost (USD)"
+                        )
+                        .mark_bar()
+                        .encode(
+                            x=alt.X('Scenario:N', axis=None),
+                            y=alt.Y('Cost (USD):Q', axis=alt.Axis(title='USD')),
+                            color=alt.Color('Scenario:N'),
+                            #column=alt.Column('level:N', title=None, header=alt.Header(labelOrient='bottom')),
+                            tooltip=['Scenario:N', 'Cost (USD):Q']
+                        ).properties(
+                            width=alt.Step(50),
+                            height=300
+                        )
+                    )
+
+                    chart = chart.properties(
+                    ).configure_title(
+                        anchor='middle'
+                    )
+                    st.altair_chart(chart)
+
+                with col1:
+                    df_cost = df_ce[['DALY averted']]
+                    df_cost.reset_index(inplace=True)
+                    df_cost.columns = ["Scenario", "DALY averted"]
+                    # df_cost
+                    chart = (
+                        alt.Chart(
+                            data=df_cost,
+                            title="DALY averted"
+                        )
+                        .mark_bar()
+                        .encode(
+                            x=alt.X('Scenario:N', axis=None),
+                            y=alt.Y('DALY averted:Q', axis=alt.Axis(title='Years')),
+                            color=alt.Color('Scenario:N'),
+                            #column=alt.Column('level:N', title=None, header=alt.Header(labelOrient='bottom')),
+                            tooltip=['Scenario:N', 'DALY averted:Q']
+                        ).properties(
+                            width=alt.Step(50),
+                            height=300
+                        )
+                    )
+
+                    chart = chart.properties(
+                    ).configure_title(
+                        anchor='middle'
+                    )
+                    st.altair_chart(chart)
+
+                df_cost = df_ce[['Cost per DALY averted']]
+                df_cost.reset_index(inplace=True)
+                df_cost.columns = ["Scenario", "Cost per DALY averted"]
+                # df_cost
+                chart = (
+                    alt.Chart(
+                        data=df_cost,
+                        title="Cost per DALY averted"
+                    )
+                    .mark_bar()
+                    .encode(
+                        x=alt.X('Scenario:N', axis=None),
+                        y=alt.Y('Cost per DALY averted:Q', axis=alt.Axis(title='USD per DALY averted')),
+                        color=alt.Color('Scenario:N'),
+                        #column=alt.Column('level:N', title=None, header=alt.Header(labelOrient='bottom')),
+                        tooltip=['Scenario:N', 'Cost per DALY averted:Q']
+                    ).properties(
+                        width=alt.Step(60),
+                        height=300
+                    )
+                )
+
+                chart = chart.properties(
+                ).configure_title(
+                    anchor='middle'
+                )
+                st.altair_chart(chart)
 
         if selected_plotA == "Live births":
 
@@ -2275,8 +2418,8 @@ with ((st.form('Test'))):
             return Ratedf
 
         if selected_plotA == "Maternal mortality rate":
-            st.markdown("<h3 style='text-align: left;'>Maternal deaths per 1000 live births (MMR)</h3>",
-                        unsafe_allow_html=True)
+            #st.markdown("<h3 style='text-align: left;'>Maternal deaths per 1000 live births (MMR)</h3>",
+            #            unsafe_allow_html=True)
 
             tab1, tab2 = st.tabs(["Line plots", "Bar charts"])
             p_title = ['Baseline', 'Intervention']
@@ -2284,21 +2427,44 @@ with ((st.form('Test'))):
             with tab1:
                 options = ['Home', 'L2/3', 'L4', 'L5']
                 selected_options = st.multiselect('Select levels', options)
+                baseline = st.checkbox("Reset to show baseline scenario of MMR in line plots?",
+                                       help="Click this checkbox and then press Run Model button")
                 col0, col1 = st.columns(2)
                 with col0:
-                    countyRatelineplot(bLB_SC[:, :6], bMM_SC[:, :6],0, faccols[:6], "MMR", 4)
+                    if baseline:
+                        st.markdown('**Baseline Scenario**')
+                        chart1 = countyRatelineplot(bLB_SC[:, :6], bMM_SC[:, :6],0, faccols[:6], "MMR", 4)
+                        st.altair_chart(chart1)
+                    else:
+                        previous_MMRlineplot = st.session_state.get('previous_MMRlineplot', None)
+                        if previous_MMRlineplot is not None:
+                            st.markdown('**Previous Intervention Scenario**')
+                            st.altair_chart(previous_MMRlineplot)
+
                 with col1:
-                    countyRatelineplot(LB_SC[:, :6], MM_SC[:, :6], 1, faccols[:6], "MMR", 4)
+                    st.markdown('**Current Intervention Scenario**')
+                    chart2 = countyRatelineplot(LB_SC[:, :6], MM_SC[:, :6], 1, faccols[:6], "MMR", 4)
+                    st.altair_chart(chart2)
+                    st.session_state.previous_MMRlineplot = chart2
 
             with tab2:
+                col0, col1 = st.columns(2)
+                with col0:
+                    previous_MMRbarplot = st.session_state.get('previous_MMRbarplot', None)
+                    if previous_MMRbarplot is not None:
+                        st.markdown('**Previous Intervention Scenario**')
+                        st.altair_chart(previous_MMRbarplot)
 
-                df1 = createcountyyearRatedf(bLB_SC[:, :6], bMM_SC[:, :6], faccols[:6])
-                df2 = createcountyyearRatedf(LB_SC[:, :6], MM_SC[:, :6], faccols[:6])
-                df1['Scenario'] = 'Baseline'
-                df2['Scenario'] = 'Intervention'
-                df = pd.concat([df1, df2], ignore_index=True)
-                chart = barplots(df, "MMR", "MMR")
-                st.altair_chart(chart)
+                with col1:
+                    st.markdown('**Current Intervention Scenario**')
+                    df1 = createcountyyearRatedf(bLB_SC[:, :6], bMM_SC[:, :6], faccols[:6])
+                    df2 = createcountyyearRatedf(LB_SC[:, :6], MM_SC[:, :6], faccols[:6])
+                    df1['Scenario'] = 'Baseline'
+                    df2['Scenario'] = 'Intervention'
+                    df = pd.concat([df1, df2], ignore_index=True)
+                    chart2 = barplots(df, "MMR", "MMR")
+                    st.altair_chart(chart2)
+                    st.session_state.previous_MMRbarplot = chart2
 
         if selected_plotA == "Neonatal mortality rate":
             st.markdown("<h3 style='text-align: left;'>Neonatal deaths per 1000 live births (NMR)</h3>",
@@ -2312,10 +2478,11 @@ with ((st.form('Test'))):
                 selected_options = st.multiselect('Select levels', options)
                 col0, col1 = st.columns(2)
                 with col0:
-                    countyRatelineplot(bLB_SC[:, :6], bNM_SC[:, :6],0, faccols[:6], "NMR", 20)
+                    chart1 = countyRatelineplot(bLB_SC[:, :6], bNM_SC[:, :6],0, faccols[:6], "NMR", 20)
+                    st.altair_chart(chart1)
                 with col1:
-                    countyRatelineplot(LB_SC[:, :6], NM_SC[:, :6], 1, faccols[:6], "NMR", 20)
-
+                    chart2 = countyRatelineplot(LB_SC[:, :6], NM_SC[:, :6], 1, faccols[:6], "NMR", 20)
+                    st.altair_chart(chart2)
             with tab2:
 
                 df1 = createcountyyearRatedf(bLB_SC[:, :6], bNM_SC[:, :6], faccols[:6])
@@ -2414,9 +2581,9 @@ with ((st.form('Test'))):
                     st.altair_chart(chart)
 
         if selected_plotA == "Intervention coverage":
-            st.markdown("<h3 style='text-align: left;'>Intervention coverage</h3>",
-                        unsafe_allow_html=True)
-            tab1, tab2, tab3, tab4 = st.tabs(["Obstetric drape", "IV iron infusion", "MgSO4 for eclampsia", "Antibiotics for maternal sepsis"])
+
+            single_interventions = ["Obstetric drape", "IV iron infusion", "MgSO4 for eclampsia", "Antibiotics for maternal sepsis"]
+            tab1, tab2, tab3, tab4 = st.tabs(single_interventions)
             tabs = [tab1, tab2, tab3, tab4]
             p_title = ['Baseline', 'Intervention']
             dfs = [
@@ -2425,15 +2592,104 @@ with ((st.form('Test'))):
                 [bINT5Cov, INT5Cov],
                 [bINT6Cov, INT6Cov]
             ]
-            for i in range(4):
-                with tabs[i]:
-                    col0, col1 = st.columns(2)
-                    cols = [col0, col1]
-                    ymax = max(dfs[i][0].iloc[:, 2].max(), dfs[i][1].iloc[:, 2].max()) + 0.1
-                    for j in range(2):
-                        chart = subcountyplots(dfs[i][j], p_title[j], "Coverage", ymax)
-                        with cols[j]:
-                            st.altair_chart(chart)
+            #for i in range(4):
+            with tabs[0]:
+                baseline = st.checkbox("Reset to show baseline scenario of " + single_interventions[0],
+                                       help="Click this checkbox and then press Run Model button")
+                ymax = max(dfs[0][0].iloc[:, 2].max(), dfs[0][1].iloc[:, 2].max()) + 0.1
+                col0, col1 = st.columns(2)
+                with col0:
+                    if baseline:
+                        st.markdown('**Baseline Scenario**')
+                        chart0 = subcountyplots(dfs[0][0], single_interventions[1], "Coverage", ymax)
+                        st.altair_chart(chart0)
+                    else:
+                        previous_ICplot1 = st.session_state.get('previous_ICplot1', None)
+                        if previous_ICplot1 is not None:
+                            st.markdown('**Previous Intervention Scenario**')
+                            st.altair_chart(previous_ICplot1)
+
+                with col1:
+                    st.markdown('**Current Intervention Scenario**')
+                    chart1 = subcountyplots(dfs[0][1], single_interventions[0], "Coverage", ymax)
+                    st.altair_chart(chart1)
+                    st.session_state.previous_ICplot1 = chart1
+
+            with tabs[1]:
+                baseline = st.checkbox("Reset to show baseline scenario of " + single_interventions[1],
+                                       help="Click this checkbox and then press Run Model button")
+                ymax = max(dfs[1][0].iloc[:, 2].max(), dfs[1][1].iloc[:, 2].max()) + 0.1
+                col0, col1 = st.columns(2)
+                with col0:
+                    if baseline:
+                        st.markdown('**Baseline Scenario**')
+                        chart0 = subcountyplots(dfs[1][0], single_interventions[1], "Coverage", ymax)
+                        st.altair_chart(chart0)
+                    else:
+                        previous_ICplot2 = st.session_state.get('previous_ICplot2', None)
+                        if previous_ICplot2 is not None:
+                            st.markdown('**Previous Intervention Scenario**')
+                            st.altair_chart(previous_ICplot2)
+
+                with col1:
+                    st.markdown('**Current Intervention Scenario**')
+                    chart1 = subcountyplots(dfs[1][1], single_interventions[1], "Coverage", ymax)
+                    st.altair_chart(chart1)
+                    st.session_state.previous_ICplot2 = chart1
+
+            with tabs[2]:
+                baseline = st.checkbox("Reset to show baseline scenario of " + single_interventions[2],
+                                       help="Click this checkbox and then press Run Model button")
+                ymax = max(dfs[2][0].iloc[:, 2].max(), dfs[2][1].iloc[:, 2].max()) + 0.1
+                col0, col1 = st.columns(2)
+                with col0:
+                    if baseline:
+                        st.markdown('**Baseline Scenario**')
+                        chart0 = subcountyplots(dfs[2][0], single_interventions[2], "Coverage", ymax)
+                        st.altair_chart(chart0)
+                    else:
+                        previous_ICplot3 = st.session_state.get('previous_ICplot3', None)
+                        if previous_ICplot3 is not None:
+                            st.markdown('**Previous Intervention Scenario**')
+                            st.altair_chart(previous_ICplot3)
+
+                with col1:
+                    st.markdown('**Current Intervention Scenario**')
+                    chart1 = subcountyplots(dfs[2][1], single_interventions[2], "Coverage", ymax)
+                    st.altair_chart(chart1)
+                    st.session_state.previous_ICplot3 = chart1
+
+            with tabs[3]:
+                baseline = st.checkbox("Reset to show baseline scenario of " + single_interventions[3],
+                                       help="Click this checkbox and then press Run Model button")
+                ymax = max(dfs[3][0].iloc[:, 2].max(), dfs[3][1].iloc[:, 2].max()) + 0.1
+                col0, col1 = st.columns(2)
+                with col0:
+                    if baseline:
+                        st.markdown('**Baseline Scenario**')
+                        chart0 = subcountyplots(dfs[3][0], single_interventions[3], "Coverage", ymax)
+                        st.altair_chart(chart0)
+                    else:
+                        previous_ICplot4 = st.session_state.get('previous_ICplot4', None)
+                        if previous_ICplot4 is not None:
+                            st.markdown('**Previous Intervention Scenario**')
+                            st.altair_chart(previous_ICplot4)
+
+                with col1:
+                    st.markdown('**Current Intervention Scenario**')
+                    chart1 = subcountyplots(dfs[3][1], single_interventions[3], "Coverage", ymax)
+                    st.altair_chart(chart1)
+                    st.session_state.previous_ICplot4 = chart1
+
+            # for i in range(4):
+            #     with tabs[i]:
+            #         col0, col1 = st.columns(2)
+            #         cols = [col0, col1]
+            #         ymax = max(dfs[i][0].iloc[:, 2].max(), dfs[i][1].iloc[:, 2].max()) + 0.1
+            #         for j in range(2):
+            #             chart = subcountyplots(dfs[i][j], p_title[j], "Coverage", ymax)
+            #             with cols[j]:
+            #                 st.altair_chart(chart)
 
         if selected_plotA == "Referral from home to L45":
             st.markdown("<h3 style='text-align: left;'>Referral from home to L4/5</h3>",
