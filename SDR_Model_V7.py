@@ -123,7 +123,8 @@ with st.sidebar:
                          "Facility capacity", "Facility capacity ratio",
                          "Referral capacity ratio",
                          "Knowledge score",
-                         "Referral from home to L45"," Emergency transfer"
+                         "Referral from home to L45",
+                         "Emergency transfer"
                          )
         selected_plotA = st.selectbox(
             label="Select outcome of interest:",
@@ -1352,6 +1353,10 @@ with ((st.form('Test'))):
         bNM_SC = np.array(np.column_stack((bNM_SC, np.sum(bMM_SC, axis=1))), dtype=np.float64)
         NM_SC = np.concatenate(df_outcomes['Neonatal Deaths'].values).reshape(-1, 4)
         NM_SC = np.array(np.column_stack((NM_SC, np.sum(MM_SC, axis=1))), dtype=np.float64)
+        bCom_fac = np.concatenate(df_b_outcomes['Facility Level-Complications Post'].values).reshape(-1, 4)
+        bCom_fac = np.array(np.column_stack((bCom_fac, np.sum(bCom_fac, axis=1))), dtype=np.float64)
+        Com_fac = np.concatenate(df_outcomes['Facility Level-Complications Post'].values).reshape(-1, 4)
+        Com_fac = np.array(np.column_stack((Com_fac, np.sum(Com_fac, axis=1))), dtype=np.float64)
 
         MMR_SC = np.array(np.divide(MM_SC, LB_SC) * 1000, dtype=np.float64)
         bMMR_SC = np.array(np.divide(bMM_SC, bLB_SC) * 1000, dtype=np.float64)
@@ -1368,6 +1373,8 @@ with ((st.form('Test'))):
         NM_SC = np.hstack((df_outcomes[['Subcounty', 'Time']], NM_SC))
         bNMR_SC = np.hstack((df_b_outcomes[['Subcounty', 'Time']], bNMR_SC))
         NMR_SC = np.hstack((df_outcomes[['Subcounty', 'Time']], NMR_SC))
+        bCom_fac = np.hstack((df_b_outcomes[['Subcounty', 'Time']], bCom_fac))
+        Com_fac = np.hstack((df_outcomes[['Subcounty', 'Time']], Com_fac))
 
         # #Subcounty level complications
         Com_SC = np.array([np.sum(arr, axis=1) for arr in df_outcomes['Complications-Health']], dtype=np.float64)
@@ -2318,8 +2325,21 @@ with ((st.form('Test'))):
         if selected_plotA == "Complications":
             st.markdown("<h3 style='text-align: left;'>Complications</h3>",
                         unsafe_allow_html=True)
-            tab1, tab2 = st.tabs(["Line plots", "Bar charts"])
+            tab1, tab2, tab3, tab4 = st.tabs(["Line plots - by facility level", "Bar charts - by facility level",
+                                              "Line plots - by type", "Bar charts - by type"])
             with tab1:
+                options = ['Home', 'L2/3', 'L4', 'L5']
+                selected_options = st.multiselect('Select levels', options)
+                p_title = ['Baseline', 'Intervention']
+                col0, col1 = st.columns(2)
+                with col0:
+                    countylineplots(bCom_fac[:, :6], faccols[:6], 0, "Number of complications", 100)
+                with col1:
+                    countylineplots(Com_fac[:, :6], faccols[:6], 1, "Number of complications", 100)
+            with tab2:
+                countybarplots(bCom_fac[:, :6], Com_fac[:, :6], faccols[:6], "Number of complications")
+
+            with tab3:
                 options = ['PPH', 'Sepsis', 'Eclampsia', 'Obstructed', 'Others']
                 selected_options = st.multiselect('Select levels:', options)
                 p_title = ['Baseline', 'Intervention']
@@ -2328,13 +2348,13 @@ with ((st.form('Test'))):
                     countylineplots(bCom_SC, comcols, 0, "Number of complications", 1200 / 12)
                 with col1:
                     countylineplots(Com_SC, comcols, 1, "Number of complications", 1200 / 12)
-            with tab2:
+            with tab4:
                 countybarplots(bCom_SC, Com_SC, comcols, "Number of complications")
 
         if selected_plotA == "Maternal deaths":
             st.markdown("<h3 style='text-align: left;'>Maternal deaths</h3>",
                         unsafe_allow_html=True)
-            tab1, tab3 = st.tabs(["Line plots", "Bar charts"])
+            tab1, tab2 = st.tabs(["Line plots", "Bar charts"])
             with tab1:
                 options = ['Home', 'L2/3', 'L4', 'L5']
                 selected_options = st.multiselect('Select levels', options)
@@ -2345,7 +2365,7 @@ with ((st.form('Test'))):
                 with col1:
                     countylineplots(MM_SC[:, :6], faccols[:6],1, "Number of maternal deaths", 50 / 12)
 
-            with tab3:
+            with tab2:
                 countybarplots(bMM_SC[:, :6], MM_SC[:, :6], faccols[:6], "Number of maternal deaths")
 
         if selected_plotA == "Neonatal deaths":
@@ -2714,7 +2734,7 @@ with ((st.form('Test'))):
             col0, col1 = st.columns(2)
             cols = [col0, col1]
             dfs = [bcomrefer, comrefer]
-            ymax = max(dfs[0].iloc[:, 2].max(), dfs[1].iloc[:, 2].max()) + 0.1
+            ymax = max(dfs[0].iloc[:, 2].max(), dfs[1].iloc[:, 2].max()) + 0.5
 
             for i in range(2):
                 chart = subcountyplots(dfs[i], p_title[i], "Emergency transfer", ymax)
