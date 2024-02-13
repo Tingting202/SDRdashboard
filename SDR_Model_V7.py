@@ -312,7 +312,7 @@ if selected_plotA == "Cost effectiveness":
 if selected_plotA == "Live births":
     st.markdown("<h3 style='text-align: left;'>Live births</h3>", unsafe_allow_html=True,
                 help = "Interventions and parameters that can change this outcome: \n\n "
-                       "1. SDR Demand: Employ CHVs -> CHV coverage, CHV effect on delivery at L4/5 \n\n "
+                       "1. SDR Demand: Employ CHVs -> Expected % increase in L4/5 deliveries \n\n "
                        "2. SDR Supply: Upgrade L4/5 -> Improve facility capacity; Upgrade rescue -> Improve referral capacity \n\n "
                        "3. Single Interventions: None")
 
@@ -332,6 +332,43 @@ if selected_plotA == "Maternal mortality rate":
                        "2. SDR Supply: all parameters \n\n "
                        "3. Single Interventions: all parameters"
                 )
+
+if selected_plotA == "Emergency transfer":
+    st.markdown("<h3 style='text-align: left;'>Emergency transfer from Home or L2/3 to L4/5</h3>",
+                unsafe_allow_html=True,
+                help = "Interventions and parameters that can change this outcome: \n\n "
+                       "1. SDR Demand: all parameters \n\n "
+                       "2. SDR Supply: all parameters \n\n "
+                       "3. Single Interventions: None")
+
+if selected_plotA == "Complications":
+    st.markdown("<h3 style='text-align: left;'>Complications</h3>",
+                unsafe_allow_html=True,
+                help="Interventions and parameters that can change this outcome: \n\n "
+                     "1. SDR Demand: all parameters \n\n "
+                     "2. SDR Supply: all parameters \n\n "
+                     "3. Single Interventions: all parameters"
+                )
+
+if selected_plotA == "Neonatal mortality rate":
+    st.markdown("<h3 style='text-align: left;'>Neonatal deaths per 1000 live births (NMR)</h3>",
+                unsafe_allow_html=True,
+                help="Interventions and parameters that can change this outcome: \n\n "
+                     "1. SDR Demand: all parameters \n\n "
+                     "2. SDR Supply: all parameters \n\n "
+                     "3. Single Interventions: all parameters"
+                )
+
+if selected_plotA == "Facility capacity ratio":
+    st.markdown("<h3 style='text-align: left;'>Facility capacity ratio</h3>",
+                unsafe_allow_html=True,
+                help="Interventions and parameters that can change this outcome: \n\n "
+                     "**Facility capacity ratio** = the number of current deliveries / maximum deliveries at L4/5 facilities \n\n"
+                     "1. SDR Demand: Employ CHVs -> Expected % increase in L4/5 deliveries \n\n "
+                     "2. SDR Supply: Upgrade L4/5 -> Improve facility capacity \n\n "
+                     "3. Single Interventions: None"
+                )
+
 
 with ((st.form('Test'))):
     ### PARAMETERs ###
@@ -2323,8 +2360,8 @@ with ((st.form('Test'))):
                 countybarplots(bLB_SC[:, :6], LB_SC[:, :6], faccols[:6], "Number of live births")
 
         if selected_plotA == "Complications":
-            st.markdown("<h3 style='text-align: left;'>Complications</h3>",
-                        unsafe_allow_html=True)
+            #st.markdown("<h3 style='text-align: left;'>Complications</h3>",
+            #            unsafe_allow_html=True)
             tab1, tab2, tab3, tab4 = st.tabs(["Line plots - by facility level", "Bar charts - by facility level",
                                               "Line plots - by type", "Bar charts - by type"])
             with tab1:
@@ -2487,8 +2524,8 @@ with ((st.form('Test'))):
                     st.session_state.previous_MMRbarplot = chart2
 
         if selected_plotA == "Neonatal mortality rate":
-            st.markdown("<h3 style='text-align: left;'>Neonatal deaths per 1000 live births (NMR)</h3>",
-                        unsafe_allow_html=True)
+            # st.markdown("<h3 style='text-align: left;'>Neonatal deaths per 1000 live births (NMR)</h3>",
+            #             unsafe_allow_html=True)
 
             tab1, tab2 = st.tabs(["Line plots", "Bar charts"])
             p_title = ['Baseline', 'Intervention']
@@ -2727,8 +2764,8 @@ with ((st.form('Test'))):
                     st.altair_chart(chart)
 
         if selected_plotA == "Emergency transfer":
-            st.markdown("<h3 style='text-align: left;'>Emergency transfer from Home or L2/3 to L4/5</h3>",
-                        unsafe_allow_html=True)
+            #st.markdown("<h3 style='text-align: left;'>Emergency transfer from Home or L2/3 to L4/5</h3>",
+            #            unsafe_allow_html=True)
 
             p_title = ['Baseline', 'Intervention']
             col0, col1 = st.columns(2)
